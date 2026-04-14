@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baitly — Aplikacja Wędkarska</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a8e063">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baitly">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1a0f;--bg2:#111f13;--card:#162019;--card2:#1c2a1e;
+    --green:#3a7d2c;--green-light:#5cb84a;--accent:#a8e063;
+    --water:#1e6b8a;--water-light:#3db3d4;--gold:#f0c040;
+    --purple:#7b4db5;--purple-light:#a87de8;
+    --text:#e8f0e8;--text-dim:#7a9a7a;--border:#2a3d2a;
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  header{position:sticky;top:0;z-index:500;background:rgba(13,26,15,0.97);backdrop-filter:blur(12px);border-bottom:2px solid var(--accent);padding:0 12px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+  .logo{font-family:'Bebas Neue',cursive;font-size:26px;color:var(--accent);letter-spacing:3px;}
+  .tabs{display:flex;gap:3px;flex-wrap:wrap;}
+  .tab{padding:5px 11px;border-radius:50px;border:1.5px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:700;font-size:11px;cursor:pointer;transition:border-color 0.2s,color 0.2s;}
+  .tab.active,.tab:hover{border-color:var(--accent);color:var(--accent);background:rgba(168,224,99,0.08);}
+  .page{display:none;}.page.active{display:block;}
+  .hero{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#1a2e1a,#0a1f1a);}
+  .hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(24px,5vw,44px);letter-spacing:3px;margin-bottom:4px;}
+  .hero h1 span{color:var(--accent);}
+  .hero p{color:var(--text-dim);font-size:12px;margin-bottom:10px;}
+  .hero-stats{display:flex;justify-content:center;gap:24px;}
+  .hstat-n{font-family:'Bebas Neue',cursive;font-size:22px;color:var(--accent);text-align:center;}
+  .hstat-l{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;text-align:center;}
+  .map-layout{display:grid;grid-template-columns:290px 1fr;height:calc(100vh - 200px);min-height:420px;}
+  .sidebar{background:var(--card);overflow-y:auto;border-right:2px solid var(--border);}
+  .sidebar-hdr{background:var(--green);padding:9px 12px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:white;}
+  .add-btn-map{width:100%;padding:10px;background:linear-gradient(135deg,var(--green),var(--green-light));color:white;border:none;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
+  .map-form{background:var(--card2);margin:7px;border-radius:var(--radius);padding:11px;display:none;border:1px solid var(--border);}
+  .map-form.open{display:block;}
+  .fg{margin-bottom:7px;}
+  .fg label{display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:2px;}
+  .fg input,.fg select,.fg textarea{width:100%;padding:6px 9px;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Nunito',sans-serif;font-size:12px;}
+  .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent);}
+  .fg select option{background:var(--bg2);}
+  .fg textarea{resize:vertical;min-height:45px;}
+  .submit-map{width:100%;padding:7px;background:var(--green);color:white;border:none;border-radius:7px;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;margin-top:2px;}
+  .filter-bar{padding:6px 7px;display:flex;gap:3px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg2);}
+  .fchip{padding:3px 9px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:700;font-size:10px;cursor:pointer;}
+  .fchip.active,.fchip:hover{border-color:var(--accent);color:var(--accent);background:rgba(168,224,99,0.08);}
+  .lowisko-card{margin:6px 7px;background:var(--card2);border-radius:10px;padding:10px;cursor:pointer;border-left:3px solid var(--accent);}
+  .lowisko-card:hover{background:#1f2e22;}
+  .lc-header{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .lc-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--water),var(--water-light));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+  .lc-name{font-weight:800;font-size:12px;}
+  .lc-region{font-size:10px;color:var(--text-dim);}
+  .lc-tags{display:flex;flex-wrap:wrap;gap:3px;}
+  .ltag{padding:2px 6px;border-radius:20px;font-size:9px;font-weight:700;}
+  .ltag-fish{background:rgba(58,125,44,0.2);color:var(--green-light);}
+  .ltag-type{background:rgba(30,107,138,0.2);color:var(--water-light);}
+  #map{width:100%;height:100%;}
+  .leaflet-popup-content-wrapper{border-radius:10px!important;border:2px solid var(--accent);font-family:'Nunito',sans-serif!important;background:#162019!important;color:#e8f0e8!important;}
+  .leaflet-popup-tip{background:#162019!important;}
+  .popup-title{font-weight:800;font-size:13px;color:var(--accent);margin-bottom:3px;}
+  .popup-info{font-size:11px;color:#7a9a7a;line-height:1.5;}
+  .pin-info-box{font-size:11px;color:var(--water-light);background:rgba(30,107,138,0.15);border:1px solid rgba(30,107,138,0.3);border-radius:7px;padding:7px 9px;margin:6px 7px;}
+  .add-bar{padding:9px 16px;display:flex;justify-content:flex-end;border-bottom:1px solid var(--border);background:var(--bg2);}
+  .btn-add{padding:7px 16px;background:linear-gradient(135deg,var(--green),var(--green-light));color:white;border:none;border-radius:50px;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .feed-filter{padding:7px 16px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg2);}
+  .feed{max-width:560px;margin:0 auto;padding:14px 10px;display:flex;flex-direction:column;gap:12px;}
+  .catch-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+  .catch-card:hover{border-color:var(--accent);}
+  .card-img{width:100%;height:200px;object-fit:cover;display:block;}
+  .card-img-ph{width:100%;height:140px;background:linear-gradient(135deg,var(--card2),var(--bg2));display:flex;align-items:center;justify-content:center;font-size:44px;}
+  .card-body{padding:12px 14px;}
+  .card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;border:2px solid var(--border);cursor:pointer;}
+  .card-author-name{font-weight:800;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .card-date{font-size:10px;color:var(--text-dim);}
+  .level-badge{padding:2px 7px;border-radius:20px;font-size:9px;font-weight:800;border:1px solid;}
+  .lvl-1{background:rgba(139,90,43,0.2);color:#cd7f32;border-color:#cd7f32;}
+  .lvl-2{background:rgba(192,192,192,0.2);color:#c0c0c0;border-color:#c0c0c0;}
+  .lvl-3{background:rgba(255,215,0,0.2);color:#ffd700;border-color:#ffd700;}
+  .lvl-4{background:rgba(168,224,99,0.2);color:var(--accent);border-color:var(--accent);}
+  .lvl-5{background:rgba(30,107,138,0.2);color:var(--water-light);border-color:var(--water-light);}
+  .record-badge{background:linear-gradient(135deg,var(--gold),#f0a020);color:#0d1a0f;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:800;margin-left:auto;}
+  .fish-name-big{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;margin-bottom:6px;}
+  .fish-stats{display:flex;gap:5px;margin-bottom:7px;}
+  .fish-stat{background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;text-align:center;flex:1;}
+  .fs-val{font-family:'Bebas Neue',cursive;font-size:16px;color:var(--accent);line-height:1;}
+  .fs-lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;margin-top:1px;}
+  .card-tags{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;}
+  .ctag{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;}
+  .ctag-w{background:rgba(30,107,138,0.2);color:var(--water-light);border:1px solid rgba(30,107,138,0.3);}
+  .ctag-p{background:rgba(240,192,64,0.1);color:var(--gold);border:1px solid rgba(240,192,64,0.2);}
+  .ctag-m{background:rgba(138,30,138,0.2);color:#d084d0;border:1px solid rgba(138,30,138,0.3);}
+  .card-desc{font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:8px;}
+  .record-near{background:rgba(240,192,64,0.12);border:1px solid rgba(240,192,64,0.3);border-radius:7px;padding:5px 9px;margin-bottom:7px;font-size:11px;color:var(--gold);}
+  .card-footer{display:flex;align-items:center;gap:6px;padding-top:7px;border-top:1px solid var(--border);}
+  .like-btn,.comment-btn{display:flex;align-items:center;gap:3px;background:transparent;border:1.5px solid var(--border);border-radius:50px;padding:4px 10px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:700;font-size:11px;cursor:pointer;}
+  .like-btn:hover,.like-btn.liked{border-color:#e05555;color:#e05555;}
+  .comment-btn:hover{border-color:var(--water-light);color:var(--water-light);}
+  .comments-section{border-top:1px solid var(--border);padding:9px 13px;display:none;}
+  .comments-section.open{display:block;}
+  .comment-item{display:flex;gap:7px;margin-bottom:7px;}
+  .comment-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0;}
+  .comment-bubble{background:var(--card2);border-radius:9px;padding:6px 9px;flex:1;}
+  .comment-author{font-weight:800;font-size:10px;margin-bottom:1px;}
+  .comment-text{font-size:11px;color:var(--text-dim);}
+  .comment-input-row{display:flex;gap:6px;margin-top:7px;}
+  .comment-input{flex:1;padding:6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;color:var(--text);font-family:'Nunito',sans-serif;font-size:11px;}
+  .comment-input:focus{outline:none;border-color:var(--accent);}
+  .comment-send{padding:6px 12px;background:var(--green);color:white;border:none;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:10px;cursor:pointer;}
+  .ranking-hero{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#1a1a05,#2a2505);}
+  .ranking-hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(24px,5vw,44px);letter-spacing:3px;margin-bottom:4px;}
+  .ranking-hero h1 span{color:var(--gold);}
+  .ranking-wrap{max-width:680px;margin:0 auto;padding:16px 12px;}
+  .section-title{font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:2px;color:var(--gold);margin-bottom:9px;margin-top:3px;}
+  .levels-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 15px;margin-bottom:14px;}
+  .levels-box h3{font-size:10px;font-weight:800;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;}
+  .level-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .level-row:last-child{border-bottom:none;}
+  .rtabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:11px;}
+  .rtab{padding:5px 11px;border-radius:50px;border:1.5px solid var(--border);background:transparent;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:700;font-size:10px;cursor:pointer;}
+  .rtab.active,.rtab:hover{border-color:var(--gold);color:var(--gold);background:rgba(240,192,64,0.06);}
+  .rank-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;display:flex;align-items:center;gap:9px;}
+  .rank-card:hover{background:var(--card2);}
+  .rank-card.top1{border-color:var(--gold);}
+  .rank-card.top2{border-color:#c0c0c0;}
+  .rank-card.top3{border-color:#cd7f32;}
+  .rank-pos{font-family:'Bebas Neue',cursive;font-size:20px;width:28px;text-align:center;flex-shrink:0;}
+  .rank-pos.gold{color:var(--gold);}.rank-pos.silver{color:#c0c0c0;}.rank-pos.bronze{color:#cd7f32;}
+  .rank-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:white;flex-shrink:0;cursor:pointer;border:2px solid var(--border);}
+  .rank-info{flex:1;}
+  .rank-name{font-weight:800;font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+  .rank-sub{font-size:10px;color:var(--text-dim);margin-top:1px;}
+  .xp-bar-bg{background:var(--border);border-radius:10px;height:4px;overflow:hidden;margin-top:4px;}
+  .xp-bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--green),var(--accent));}
+  .xp-text{font-size:9px;color:var(--text-dim);margin-top:1px;}
+  .rs-val{font-family:'Bebas Neue',cursive;font-size:18px;color:var(--accent);text-align:center;}
+  .rs-lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;text-align:center;}
+  .no-data{text-align:center;padding:20px;color:var(--text-dim);font-size:12px;}
+  .kalk-hero{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#0a1a2a,#0a2a1a);}
+  .kalk-hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(24px,5vw,42px);letter-spacing:3px;margin-bottom:4px;}
+  .kalk-hero h1 span{color:var(--water-light);}
+  .kalk-wrap{max-width:580px;margin:0 auto;padding:16px 12px;}
+  .kalk-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+  .kalk-box h3{font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:2px;color:var(--water-light);margin-bottom:12px;}
+  .kalk-btn{width:100%;padding:10px;background:linear-gradient(135deg,var(--water),var(--water-light));color:white;border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;margin-top:10px;}
+  .kalk-result{background:var(--card2);border-radius:11px;padding:14px;margin-top:10px;display:none;border:1px solid var(--border);}
+  .kalk-result.show{display:block;}
+  .kr-gatunek{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;margin-bottom:7px;}
+  .kr-bar-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+  .kr-bar-label{font-size:10px;color:var(--text-dim);width:55px;flex-shrink:0;}
+  .kr-bar-bg{flex:1;background:var(--border);border-radius:10px;height:7px;overflow:hidden;}
+  .kr-bar-fill{height:100%;border-radius:10px;}
+  .kr-bar-val{font-size:10px;font-weight:800;width:40px;text-align:right;}
+  .kr-sub{font-size:10px;color:var(--text-dim);margin-bottom:8px;padding-left:62px;}
+  .kr-verdict{margin-top:10px;padding:9px 12px;border-radius:9px;font-size:12px;font-weight:700;text-align:center;}
+  .kr-verdict.amazing{background:rgba(168,224,99,0.12);color:var(--accent);border:1px solid rgba(168,224,99,0.3);}
+  .kr-verdict.great{background:rgba(240,192,64,0.1);color:var(--gold);border:1px solid rgba(240,192,64,0.2);}
+  .kr-verdict.good{background:rgba(30,107,138,0.12);color:var(--water-light);border:1px solid rgba(30,107,138,0.25);}
+  .kr-verdict.normal{background:rgba(42,61,42,0.4);color:var(--text-dim);border:1px solid var(--border);}
+  .rekords-table{width:100%;border-collapse:collapse;margin-top:6px;}
+  .rekords-table th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);padding:5px 7px;border-bottom:1px solid var(--border);}
+  .rekords-table td{padding:7px;font-size:11px;border-bottom:1px solid rgba(42,61,42,0.4);}
+  .rekords-table tr:hover td{background:rgba(42,61,42,0.3);}
+  .rekords-table td:first-child{font-weight:800;}
+  .profil-hero{padding:18px 16px 14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#1a0a2a,#0a1a1a);}
+  .profil-top{display:flex;align-items:center;gap:14px;margin-bottom:12px;max-width:620px;margin-left:auto;margin-right:auto;}
+  .profil-avatar-big{width:66px;height:66px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:white;border:3px solid var(--purple-light);flex-shrink:0;}
+  .profil-name-big{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;}
+  .profil-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:620px;margin:0 auto;}
+  .ps-box{background:rgba(0,0,0,0.3);border-radius:9px;padding:8px;text-align:center;}
+  .ps-val{font-family:'Bebas Neue',cursive;font-size:20px;color:var(--accent);}
+  .ps-lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;}
+  .profil-wrap{max-width:620px;margin:0 auto;padding:14px 12px;}
+  .privacy-toggle{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px 14px;margin-bottom:14px;}
+  .toggle-switch{position:relative;width:42px;height:22px;flex-shrink:0;}
+  .toggle-switch input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:22px;cursor:pointer;transition:0.3s;}
+  .toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--text-dim);border-radius:50%;transition:0.3s;}
+  input:checked+.toggle-slider{background:var(--purple);}
+  input:checked+.toggle-slider::before{transform:translateX(20px);background:white;}
+  .privacy-info h4{font-size:12px;font-weight:800;margin-bottom:1px;}
+  .privacy-info p{font-size:10px;color:var(--text-dim);}
+  .badges-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;}
+  .badges-section h3{font-size:10px;font-weight:800;color:var(--purple-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;}
+  .badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px;}
+  .badge-card{background:var(--card2);border-radius:9px;padding:9px;text-align:center;border:1px solid var(--border);}
+  .badge-card.earned{border-color:rgba(123,77,181,0.5);background:rgba(123,77,181,0.1);}
+  .badge-card.locked{opacity:0.35;filter:grayscale(1);}
+  .badge-icon{font-size:22px;margin-bottom:4px;}
+  .badge-name{font-size:10px;font-weight:800;margin-bottom:1px;}
+  .badge-desc{font-size:9px;color:var(--text-dim);}
+  .dziennik-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+  .dziennik-section h3{font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;}
+  .dziennik-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+  .dziennik-item:last-child{border-bottom:none;}
+  .di-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0;}
+  .di-fish{font-weight:800;font-size:12px;}
+  .di-meta{font-size:10px;color:var(--text-dim);}
+  .di-waga{font-family:'Bebas Neue',cursive;font-size:16px;color:var(--accent);margin-left:auto;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px);}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:18px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;}
+  .modal h2{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--accent);margin-bottom:13px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .modal-btns{display:flex;gap:7px;margin-top:7px;}
+  .btn-cancel{flex:1;padding:9px;background:transparent;border:1.5px solid var(--border);border-radius:9px;color:var(--text-dim);font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;}
+  .btn-submit{flex:2;padding:9px;background:linear-gradient(135deg,var(--green),var(--green-light));border:none;border-radius:9px;color:white;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+  .upload-area{border:2px dashed var(--border);border-radius:9px;padding:15px;text-align:center;cursor:pointer;position:relative;margin-bottom:8px;}
+  .upload-area:hover{border-color:var(--accent);}
+  .upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .upload-area .u-icon{font-size:22px;margin-bottom:2px;}
+  .upload-area p{color:var(--text-dim);font-size:11px;}
+  .upload-area .preview{max-width:100%;border-radius:7px;display:none;}
+  .empty-state{text-align:center;padding:22px 12px;color:var(--text-dim);}
+  .profil-modal{background:var(--card);border-radius:var(--radius);border:1px solid var(--purple-light);padding:18px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto;}
+  .pm-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:white;border:3px solid var(--purple-light);margin:0 auto 8px;}
+  .pm-name{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:2px;text-align:center;margin-bottom:3px;}
+  .pm-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px;}
+  .pm-stat{background:var(--card2);border-radius:7px;padding:7px;text-align:center;}
+  .pm-stat-val{font-family:'Bebas Neue',cursive;font-size:16px;color:var(--accent);}
+  .pm-stat-lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;}
+  .pm-item{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .pm-item:last-child{border-bottom:none;}
+  .pm-fish{font-weight:800;font-size:11px;}
+  .pm-meta{font-size:9px;color:var(--text-dim);}
+  .pm-waga{font-family:'Bebas Neue',cursive;font-size:15px;color:var(--accent);margin-left:auto;}
+  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  /* FISHDEX */
+  .fishdex-hero{padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#0a0a1a,#0a1a2a);}
+  .fishdex-hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(26px,5vw,46px);letter-spacing:4px;margin-bottom:4px;}
+  .fishdex-hero h1 span{color:#7dd3fc;}
+  .fishdex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px;padding:16px 12px;max-width:720px;margin:0 auto;}
+  .fish-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform 0.2s,border-color 0.2s;position:relative;}
+  .fish-card:hover{transform:translateY(-3px);border-color:var(--accent);}
+  .fish-card.unlocked{border-color:#7dd3fc;box-shadow:0 0 12px rgba(125,211,252,0.15);}
+  .fish-card.locked{opacity:0.55;}
+  .fish-card-img{width:100%;height:95px;display:flex;align-items:center;justify-content:center;font-size:50px;}
+  .fish-card-img.ubg{background:linear-gradient(135deg,#0a1a2a,#0a2a3a);}
+  .fish-card-img.lbg{background:linear-gradient(135deg,var(--card2),var(--bg2));}
+  .fish-card-body{padding:9px 10px;}
+  .fish-card-name{font-weight:800;font-size:12px;margin-bottom:3px;}
+  .fish-score-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+  .fish-score-num{font-family:'Bebas Neue',cursive;font-size:20px;}
+  .fish-card-type{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+  .ubadge{position:absolute;top:5px;right:5px;background:#7dd3fc;color:#0a0a1a;border-radius:20px;padding:2px 7px;font-size:9px;font-weight:800;}
+  .lbadge{position:absolute;top:5px;right:5px;font-size:13px;opacity:0.4;}
+  .fish-modal{background:var(--card);border-radius:var(--radius);border:2px solid #7dd3fc;padding:20px;width:100%;max-width:400px;max-height:88vh;overflow-y:auto;}
+  .fmoji{font-size:64px;text-align:center;margin-bottom:8px;}
+  .fmname{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:3px;text-align:center;margin-bottom:2px;}
+  .fmlatin{font-size:11px;color:var(--text-dim);text-align:center;font-style:italic;margin-bottom:12px;}
+  .fmscore{text-align:center;margin-bottom:12px;padding:12px;background:var(--card2);border-radius:11px;}
+  .fmscore-num{font-family:'Bebas Neue',cursive;font-size:52px;line-height:1;}
+  .fmscore-lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+  .fmscore-fire{font-size:18px;letter-spacing:2px;}
+  .fmstats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px;}
+  .fms{background:var(--card2);border-radius:8px;padding:8px;text-align:center;}
+  .fms-val{font-family:'Bebas Neue',cursive;font-size:16px;color:var(--accent);}
+  .fms-lbl{font-size:9px;color:var(--text-dim);text-transform:uppercase;}
+  .fmdesc{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;background:var(--card2);border-radius:9px;padding:10px;}
+  .fmtips h4{font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .fmtip{display:flex;gap:6px;font-size:11px;color:var(--text-dim);margin-bottom:4px;line-height:1.4;}
+  .unlock-btn{width:100%;padding:10px;background:linear-gradient(135deg,#1e6b8a,#3db3d4);border:none;border-radius:9px;color:white;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;margin-top:10px;}
+  .unlock-btn.done{background:linear-gradient(135deg,var(--green),var(--green-light));}
+  .diff-stars{font-size:11px;letter-spacing:1px;}
+  .fishdex-stats{display:flex;justify-content:center;gap:28px;margin-top:10px;}
+
+  @media(max-width:700px){
+    .fishdex-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;}
+  }
+  /* END FISHDEX */
+
+  @media(max-width:700px){
+    .map-layout{grid-template-columns:1fr;grid-template-rows:38vh 1fr;}
+    #map{height:100%;}.sidebar{max-height:62vh;}
+    .tab span{display:none;}.form-row{grid-template-columns:1fr;}
+    .profil-stats-grid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎣 BAITLY</div>
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('mapa',this)">🗺️ <span>Mapa</span></button>
+    <button class="tab" onclick="showPage('polowy',this)">📸 <span>Połowy</span></button>
+    <button class="tab" onclick="showPage('ranking',this)">🏆 <span>Ranking</span></button>
+    <button class="tab" onclick="showPage('kalkulator',this)">📏 <span>Rekordy</span></button>
+    <button class="tab" onclick="showPage('sezony',this)">📅 <span>Sezony</span></button>
+    <button class="tab" onclick="showPage('fishdex',this)">🐟 <span>FishDex</span></button>
+    <button class="tab" onclick="showPage('profil',this)">👤 <span>Profil</span></button>
+  </div>
+</header>
+
+<!-- ==================== MAPA ==================== -->
+<div id="page-mapa" class="page active">
+  <div class="hero">
+    <h1>Mapa <span>Łowisk Polski</span></h1>
+    <p>Połowy użytkowników i najlepsze łowiska w Polsce.</p>
+    <div class="hero-stats">
+      <div><div class="hstat-n" id="cnt-polowy">0</div><div class="hstat-l">Połowów</div></div>
+      <div><div class="hstat-n" id="cnt-lowiska">0</div><div class="hstat-l">Łowisk</div></div>
+      <div><div class="hstat-n">🇵🇱</div><div class="hstat-l">Polska</div></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--border);background:var(--bg2);">
+    <button id="mtab-polowy" onclick="setMapTab('polowy')" style="flex:1;padding:10px;background:var(--green);color:white;border:none;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;border-right:1px solid var(--border);">📸 Połowy użytkowników</button>
+    <button id="mtab-lowiska" onclick="setMapTab('lowiska')" style="flex:1;padding:10px;background:transparent;color:var(--text-dim);border:none;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;">🗺️ Łowiska</button>
+  </div>
+  <div class="map-layout">
+    <div class="sidebar">
+      <!-- PANEL POŁOWY -->
+      <div id="map-panel-polowy">
+        <div class="sidebar-hdr">📍 Połowy na mapie</div>
+        <div class="filter-bar" id="polowy-filter-bar">
+          <button class="fchip active" onclick="filterMap(this,'all')">Wszystkie</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg2)">
+          🎣 Dodaj połów w zakładce <strong style="color:var(--accent)">Połowy</strong> żeby pojawić się na mapie!
+        </div>
+        <div id="cards-container"></div>
+      </div>
+      <!-- PANEL ŁOWISKA -->
+      <div id="map-panel-lowiska" style="display:none">
+        <div class="sidebar-hdr">🗺️ Łowiska</div>
+        <button class="add-btn-map" onclick="toggleLowiskoForm()">➕ Dodaj łowisko</button>
+        <div class="map-form" id="lowiskoForm">
+          <div class="pin-info-box" id="pin-info">📍 Kliknij na mapie aby ustawić lokalizację łowiska</div>
+          <div class="fg"><label>Nazwa łowiska</label><input type="text" id="lf-name" placeholder="np. Jezioro Śniardwy"></div>
+          <div class="fg"><label>Województwo</label>
+            <select id="lf-region">
+              <option>dolnośląskie</option><option>kujawsko-pomorskie</option><option>lubelskie</option><option>lubuskie</option>
+              <option>łódzkie</option><option>małopolskie</option><option>mazowieckie</option><option>opolskie</option>
+              <option>podkarpackie</option><option>podlaskie</option><option>pomorskie</option><option>śląskie</option>
+              <option>świętokrzyskie</option><option>warmińsko-mazurskie</option><option>wielkopolskie</option><option>zachodniopomorskie</option>
+            </select>
+          </div>
+          <div class="fg"><label>Typ zbiornika</label>
+            <select id="lf-type"><option>Jezioro</option><option>Rzeka</option><option>Staw</option><option>Zalew</option><option>Kanał</option><option>Morze</option></select>
+          </div>
+          <div class="fg"><label>Główny gatunek</label>
+            <select id="lf-fish"><option>Szczupak</option><option>Karp</option><option>Sum</option><option>Sandacz</option><option>Okoń</option><option>Pstrąg potokowy</option><option>Lipień</option><option>Leszcz</option><option>Brzana</option><option>Węgorz</option><option>Lin</option><option>Boleń</option><option>Mieszany</option></select>
+          </div>
+          <div class="fg"><label>Opis</label><textarea id="lf-desc" placeholder="Dojazd, zasady, wskazówki..."></textarea></div>
+          <button class="submit-map" onclick="addLowisko()">✅ Dodaj łowisko</button>
+        </div>
+        <div class="filter-bar">
+          <button class="fchip active" onclick="filterLowiska(this,'all')">Wszystkie</button>
+          <button class="fchip" onclick="filterLowiska(this,'Jezioro')">Jeziora</button>
+          <button class="fchip" onclick="filterLowiska(this,'Rzeka')">Rzeki</button>
+          <button class="fchip" onclick="filterLowiska(this,'Staw')">Stawy</button>
+        </div>
+        <div id="lowiska-container"></div>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- ==================== POŁOWY ==================== -->
+<div id="page-polowy" class="page">
+  <div class="hero">
+    <h1>Twoje <span>Połowy</span></h1>
+    <p>Chwal się rekordami, komentuj i inspiruj innych.</p>
+    <div class="hero-stats">
+      <div><div class="hstat-n" id="total-catch">0</div><div class="hstat-l">Połowów</div></div>
+      <div><div class="hstat-n" id="biggest-fish">0kg</div><div class="hstat-l">Rekord wagi</div></div>
+      <div><div class="hstat-n" id="longest-fish">0cm</div><div class="hstat-l">Rekord długości</div></div>
+    </div>
+  </div>
+  <div class="add-bar"><button class="btn-add" onclick="openModal()">📸 Dodaj połów</button></div>
+  <div class="feed-filter">
+    <button class="fchip active" onclick="setFeedFilter(this,'all')">Wszystkie</button>
+    <button class="fchip" onclick="setFeedFilter(this,'spinning')">🎯 Spinning</button>
+    <button class="fchip" onclick="setFeedFilter(this,'muchowe')">🪰 Muchowe</button>
+    <button class="fchip" onclick="setFeedFilter(this,'karpiarstwo')">🐠 Karpiarstwo</button>
+    <button class="fchip" onclick="setFeedFilter(this,'feeder_klasyczny')">🎯 Feeder klas.</button>
+    <button class="fchip" onclick="setFeedFilter(this,'metod_feeder')">🟡 Method feeder</button>
+    <button class="fchip" onclick="setFeedFilter(this,'spławikowe')">🪱 Spławikowe</button>
+    <button class="fchip" onclick="setFeedFilter(this,'vertical')">⬇️ Vertical</button>
+    <button class="fchip" onclick="setFeedFilter(this,'trolling')">🚤 Trolling</button>
+    <button class="fchip" onclick="setFeedFilter(this,'podlodowe')">🧊 Podlodowe</button>
+    <button class="fchip" onclick="setFeedFilter(this,'sumowe')">🌙 Sumowe</button>
+    <button class="fchip" onclick="setFeedFilter(this,'rekordy')">🏆 Rekordy</button>
+  </div>
+  <div class="feed" id="feed"></div>
+</div>
+
+<!-- ==================== RANKING ==================== -->
+<div id="page-ranking" class="page">
+  <div class="ranking-hero">
+    <h1>🏆 <span>Ranking</span></h1>
+    <p>Najaktywniejsza społeczność wędkarska w Polsce</p>
+  </div>
+  <div class="ranking-wrap">
+    <div class="levels-box">
+      <h3>⚡ System Poziomów</h3>
+      <div class="level-row"><span style="font-size:16px">🪨</span><div><div style="font-weight:800;font-size:12px;color:#cd7f32">Nowicjusz</div><div style="font-size:10px;color:var(--text-dim)">0–4 połowy</div></div></div>
+      <div class="level-row"><span style="font-size:16px">🐛</span><div><div style="font-weight:800;font-size:12px;color:#c0c0c0">Początkujący</div><div style="font-size:10px;color:var(--text-dim)">5–14 połowów</div></div></div>
+      <div class="level-row"><span style="font-size:16px">🎣</span><div><div style="font-weight:800;font-size:12px;color:#ffd700">Wędkarz</div><div style="font-size:10px;color:var(--text-dim)">15–29 połowów</div></div></div>
+      <div class="level-row"><span style="font-size:16px">🐟</span><div><div style="font-weight:800;font-size:12px;color:var(--accent)">Mistrz Wędki</div><div style="font-size:10px;color:var(--text-dim)">30–49 połowów</div></div></div>
+      <div class="level-row"><span style="font-size:16px">🏆</span><div><div style="font-weight:800;font-size:12px;color:var(--water-light)">Legenda Łowisk</div><div style="font-size:10px;color:var(--text-dim)">50+ połowów</div></div></div>
+    </div>
+    <div class="section-title">📊 RANKINGI</div>
+    <div class="rtabs">
+      <button class="rtab active" onclick="setRankTab(this,'ogolny')">👥 Ogólny</button>
+      <button class="rtab" onclick="setRankTab(this,'spinning')">🎯 Spinning</button>
+      <button class="rtab" onclick="setRankTab(this,'muchowe')">🪰 Muchowe</button>
+      <button class="rtab" onclick="setRankTab(this,'karpiarstwo')">🐠 Karpiarstwo</button>
+      <button class="rtab" onclick="setRankTab(this,'feeder_klasyczny')">🎯 Feeder klas.</button>
+      <button class="rtab" onclick="setRankTab(this,'metod_feeder')">🟡 Method feeder</button>
+      <button class="rtab" onclick="setRankTab(this,'spławikowe')">🪱 Spławikowe</button>
+      <button class="rtab" onclick="setRankTab(this,'vertical')">⬇️ Vertical</button>
+      <button class="rtab" onclick="setRankTab(this,'trolling')">🚤 Trolling</button>
+      <button class="rtab" onclick="setRankTab(this,'podlodowe')">🧊 Podlodowe</button>
+      <button class="rtab" onclick="setRankTab(this,'sumowe')">🌙 Sumowe</button>
+    </div>
+    <div id="ranking-list"></div>
+  </div>
+</div>
+
+<!-- ==================== KALKULATOR ==================== -->
+<div id="page-kalkulator" class="page">
+  <div class="kalk-hero">
+    <h1>📏 Kalkulator <span>Rekordów Polski</span></h1>
+    <p>Sprawdź jak Twoja ryba wypada na tle oficjalnych rekordów Polski!</p>
+  </div>
+  <div class="kalk-wrap">
+    <div class="kalk-box">
+      <h3>🐟 WPISZ SWÓJ POŁÓW</h3>
+      <div class="form-row">
+        <div class="fg"><label>Gatunek</label>
+          <select id="k-gatunek">
+            <option>Szczupak</option><option>Karp</option><option>Sum</option><option>Sandacz</option>
+            <option>Okoń</option><option>Leszcz</option><option>Brzana</option>
+            <option>Pstrąg potokowy</option><option>Pstrąg tęczowy</option><option>Pstrąg źródlany</option>
+            <option>Lipień</option><option>Węgorz</option><option>Amur</option><option>Karaś</option>
+            <option>Płoć</option><option>Wzdręga</option><option>Jaź</option><option>Kleń</option>
+            <option>Boleń</option><option>Miętus</option><option>Certa</option><option>Tołpyga</option>
+            <option>Lin</option><option>Troć wędrowna</option><option>Troć jeziorowa</option>
+            <option>Łosoś</option><option>Sieja</option><option>Głowacica</option>
+            <option>Świnka</option><option>Rozpiór</option>
+          </select>
+        </div>
+        <div class="fg"><label>Waga (kg)</label><input type="number" id="k-waga" step="0.01" placeholder="np. 4.5"></div>
+      </div>
+      <div class="fg"><label>Długość (cm)</label><input type="number" id="k-dlugosc" step="0.1" placeholder="np. 85"></div>
+      <button class="kalk-btn" onclick="obliczRekord()">🔍 Sprawdź rekord!</button>
+      <div class="kalk-result" id="kalk-result"></div>
+    </div>
+    <div class="kalk-box">
+      <h3>🏆 REKORDY POLSKI (PZW)</h3>
+      <table class="rekords-table">
+        <thead><tr><th>Gatunek</th><th>Waga</th><th>Długość</th><th>Rekordzista</th><th>Rok</th></tr></thead>
+        <tbody id="rekords-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PROFIL ==================== -->
+<div id="page-profil" class="page">
+  <div class="profil-hero">
+    <div class="profil-top">
+      <div class="profil-avatar-big" id="profil-avatar-big">K</div>
+      <div>
+        <div class="profil-name-big" id="profil-name-big">Gość</div>
+        <div id="profil-level-badge" style="margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="profil-stats-grid">
+      <div class="ps-box"><div class="ps-val" id="ps-polowy">0</div><div class="ps-lbl">Połowów</div></div>
+      <div class="ps-box"><div class="ps-val" id="ps-rekord-w">0kg</div><div class="ps-lbl">Rekord wagi</div></div>
+      <div class="ps-box"><div class="ps-val" id="ps-rekord-d">0cm</div><div class="ps-lbl">Rekord dług.</div></div>
+      <div class="ps-box"><div class="ps-val" id="ps-likes">0</div><div class="ps-lbl">Lajków</div></div>
+    </div>
+  </div>
+  <div class="profil-wrap">
+    <div class="privacy-toggle">
+      <label class="toggle-switch">
+        <input type="checkbox" id="privacy-toggle" onchange="togglePrivacy()">
+        <span class="toggle-slider"></span>
+      </label>
+      <div class="privacy-info">
+        <h4 id="privacy-label">🌍 Profil publiczny</h4>
+        <p id="privacy-desc">Twoje połowy są widoczne dla innych</p>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:14px">
+      <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);display:block;margin-bottom:4px">Zmień imię</label>
+      <div style="display:flex;gap:7px">
+        <input type="text" id="profil-imie-input" placeholder="Wpisz imię..." style="flex:1;padding:7px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Nunito',sans-serif;font-size:12px;">
+        <button onclick="zmienImie()" style="padding:7px 13px;background:var(--purple);color:white;border:none;border-radius:7px;font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;cursor:pointer;">Zapisz</button>
+      </div>
+    </div>
+    <div class="badges-section">
+      <h3>🏅 Odznaki</h3>
+      <div class="badges-grid" id="badges-grid"></div>
+    </div>
+    <div class="dziennik-section">
+      <h3>📖 Dziennik Wędkarski</h3>
+      <div id="dziennik-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SEZONY ==================== -->
+<div id="page-sezony" class="page">
+  <div class="kalk-hero">
+    <h1>📅 Okresy <span>Ochronne</span></h1>
+    <p>Oficjalne dane PZW — rozporządzenie z 2023 r. Sprawdź czy możesz łowić!</p>
+  </div>
+  <div class="kalk-wrap" style="max-width:700px">
+
+    <!-- DZISIAJ STATUS -->
+    <div class="kalk-box" style="margin-bottom:14px">
+      <h3>🎣 SPRAWDŹ GATUNEK DZIŚ</h3>
+      <div class="fg">
+        <label>Wybierz gatunek ryby</label>
+        <select id="s-gatunek" onchange="sprawdzSezon()" style="font-size:13px;padding:9px 11px">
+          <option value="">-- wybierz gatunek --</option>
+          <option>Szczupak</option><option>Sandacz</option><option>Sum</option>
+          <option>Pstrąg potokowy</option><option>Pstrąg tęczowy</option><option>Lipień</option>
+          <option>Troć wędrowna</option><option>Troć jeziorowa</option><option>Łosoś</option>
+          <option>Brzana</option><option>Certa</option><option>Miętus</option>
+          <option>Węgorz</option><option>Głowacica</option>
+          <option>Karp</option><option>Lin</option><option>Karaś</option>
+          <option>Leszcz</option><option>Płoć</option><option>Okoń</option>
+          <option>Boleń</option><option>Kleń</option><option>Jaź</option>
+        </select>
+      </div>
+      <div id="sezon-result" style="display:none;margin-top:10px;border-radius:11px;padding:14px;border:1px solid var(--border)"></div>
+    </div>
+
+    <!-- TABELA WSZYSTKICH GATUNKÓW -->
+    <div class="kalk-box">
+      <h3>📋 WSZYSTKIE OKRESY OCHRONNE 2026</h3>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Źródło: Rozporządzenie MRiRW z 2023 r. • Lokalny okręg PZW może stosować dodatkowe ograniczenia.</p>
+      <div id="sezony-tabela"></div>
+    </div>
+
+    <!-- WYMIARY OCHRONNE -->
+    <div class="kalk-box">
+      <h3>📐 WYMIARY OCHRONNE (minimalne)</h3>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Ryby poniżej wymiaru ochronnego należy natychmiast wypuścić.</p>
+      <table class="rekords-table">
+        <thead><tr><th>Gatunek</th><th>Min. wymiar</th><th>Uwagi</th></tr></thead>
+        <tbody id="wymiary-tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== FISHDEX ==================== -->
+<div id="page-fishdex" class="page">
+  <div class="fishdex-hero">
+    <h1>🐟 <span>FishDex</span></h1>
+    <p>Zbieraj gatunki, odblokuj karty i sprawdź "rzadkość" każdej ryby!</p>
+    <div class="fishdex-stats">
+      <div><div class="hstat-n" id="fd-odblokowane">0</div><div class="hstat-l">Odblokowanych</div></div>
+      <div><div class="hstat-n" id="fd-total">0</div><div class="hstat-l">Wszystkich</div></div>
+      <div><div class="hstat-n" id="fd-procent">0%</div><div class="hstat-l">Ukończono</div></div>
+    </div>
+  </div>
+  <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;gap:5px;flex-wrap:wrap;max-width:720px;margin:0 auto">
+    <button class="fchip active" onclick="filterFishDex(this,'all')">Wszystkie</button>
+    <button class="fchip" onclick="filterFishDex(this,'unlocked')">✅ Odblokowane</button>
+    <button class="fchip" onclick="filterFishDex(this,'locked')">🔒 Zablokowane</button>
+    <button class="fchip" onclick="filterFishDex(this,'drapieznik')">🦈 Drapieżniki</button>
+    <button class="fchip" onclick="filterFishDex(this,'karp')">🐠 Karpiowate</button>
+    <button class="fchip" onclick="filterFishDex(this,'losos')">🐟 Łososiowate</button>
+    <button class="fchip" onclick="filterFishDex(this,'inne')">🐍 Inne</button>
+  </div>
+  <div class="fishdex-grid" id="fishdex-grid"></div>
+</div>
+
+<!-- FISH MODAL -->
+<div class="modal-overlay" id="fishModal">
+  <div class="fish-modal">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+      <button onclick="closeFishModal()" style="background:transparent;border:none;color:var(--text-dim);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div class="fmoji" id="fm-emoji"></div>
+    <div class="fmname" id="fm-name"></div>
+    <div class="fmlatin" id="fm-latin"></div>
+    <div class="fmscore">
+      <div class="fmscore-num" id="fm-score"></div>
+      <div class="fmscore-fire" id="fm-fire"></div>
+      <div class="fmscore-lbl">Rzadkość</div>
+    </div>
+    <div class="fmstats" id="fm-stats"></div>
+    <div class="fmdesc" id="fm-desc"></div>
+    <div class="fmtips" id="fm-tips"></div>
+    <button class="unlock-btn" id="fm-unlock-btn" onclick="toggleUnlock()"></button>
+  </div>
+</div>
+
+<!-- MODAL DODAJ POŁÓW -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>📸 Nowy Połów</h2>
+    <div class="upload-area">
+      <input type="file" accept="image/*" onchange="previewImg(this)">
+      <div id="uploadInner"><div class="u-icon">📷</div><p>Kliknij aby dodać zdjęcie</p></div>
+      <img class="preview" id="imgPreview">
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Twoje imię</label><input type="text" id="f-autor" placeholder="np. Kuba"></div>
+      <div class="fg"><label>Gatunek ryby</label>
+        <select id="f-gatunek"><option>Szczupak</option><option>Karp</option><option>Sandacz</option><option>Okoń</option><option>Sum</option><option>Leszcz</option><option>Karaś</option><option>Pstrąg potokowy</option><option>Pstrąg tęczowy</option><option>Lipień</option><option>Brzana</option><option>Amur</option><option>Węgorz</option><option>Lin</option><option>Boleń</option><option>Płoć</option><option>Inny</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Długość (cm)</label><input type="number" id="f-dlugosc" placeholder="np. 72"></div>
+      <div class="fg"><label>Waga (kg)</label><input type="number" id="f-waga" step="0.01" placeholder="np. 3.5"></div>
+    </div>
+    <div class="fg"><label>Metoda połowu</label>
+      <select id="f-metoda">
+        <option value="spinning">🎯 Spinning</option>
+        <option value="muchowe">🪰 Wędkowanie muchowe</option>
+        <option value="karpiarstwo">🐠 Karpiarstwo</option>
+        <option value="feeder_klasyczny">🎯 Feeder klasyczny</option>
+        <option value="metod_feeder">🟡 Method feeder</option>
+        <option value="spławikowe">🪱 Spławikowe</option>
+        <option value="vertical">⬇️ Vertical</option>
+        <option value="trolling">🚤 Trolling</option>
+        <option value="podlodowe">🧊 Podlodowe</option>
+        <option value="sumowe">🌙 Nocne na suma</option>
+        <option value="inne">📌 Inna</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Zbiornik</label>
+        <select id="f-zbiornik"><option>Jezioro</option><option>Rzeka</option><option>Staw</option><option>Zalew</option><option>Kanał</option><option>Morze</option></select>
+      </div>
+      <div class="fg"><label>Pogoda</label>
+        <select id="f-pogoda"><option>☀️ Słonecznie</option><option>⛅ Zachmurzenie</option><option>🌧️ Deszczowo</option><option>💨 Wietrzno</option><option>❄️ Mróz</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Województwo</label>
+      <select id="f-woj">
+        <option>dolnośląskie</option><option>kujawsko-pomorskie</option><option>lubelskie</option><option>lubuskie</option>
+        <option>łódzkie</option><option>małopolskie</option><option>mazowieckie</option><option>opolskie</option>
+        <option>podkarpackie</option><option>podlaskie</option><option>pomorskie</option><option>śląskie</option>
+        <option>świętokrzyskie</option><option>warmińsko-mazurskie</option><option>wielkopolskie</option><option>zachodniopomorskie</option>
+      </select>
+    </div>
+    <div class="fg"><label>Łowisko</label><input type="text" id="f-lowisko" placeholder="np. Jezioro Śniardwy"></div>
+    <div class="fg"><label>Opis / przynęta</label><textarea id="f-opis" placeholder="Na co brała?"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Anuluj</button>
+      <button class="btn-submit" onclick="dodajPolow()">✅ Opublikuj</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFIL MODAL -->
+<div class="modal-overlay" id="profilModal">
+  <div class="profil-modal">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+      <button onclick="closeProfilModal()" style="background:transparent;border:none;color:var(--text-dim);font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div class="pm-avatar" id="pm-avatar"></div>
+    <div class="pm-name" id="pm-name"></div>
+    <div style="text-align:center;margin-bottom:8px" id="pm-level"></div>
+    <div class="pm-stats" id="pm-stats"></div>
+    <div style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px">Ostatnie połowy</div>
+    <div id="pm-polowy"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+'use strict';
+
+// ==================== SUPABASE ====================
+const SUPABASE_URL = 'https://cqxjbopavyrfxehxczwa.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxeGpib3BhdnlyZnhlaHhjendhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDk2NjMsImV4cCI6MjA5MTMyNTY2M30.TJ25Gvac_egpZbAsIFPaAE8NlWrEkAtMIoNhseTvzGA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function ladujPolowy(){
+  const {data,error} = await sb.from('polowy').select('*').order('created_at',{ascending:false});
+  if(error){console.error('Błąd ładowania połowów:',error);return;}
+  polowy = (data||[]).map(p=>({...p, liked:false, komentarze:p.komentarze||[]}));
+  renderFeed();
+  renderMap();
+  updateStats();
+}
+
+async function zapiszPolow(p){
+  const {data,error} = await sb.from('polowy').insert([{
+    autor:p.autor, gatunek:p.gatunek, dlugosc:p.dlugosc, waga:p.waga,
+    metoda:p.metoda, zbiornik:p.zbiornik, pogoda:p.pogoda, woj:p.woj,
+    lowisko:p.lowisko, opis:p.opis, img:p.img, likes:0,
+    data:p.data, rekord:p.rekord, komentarze:[]
+  }]).select().single();
+  if(error){console.error('Błąd zapisu połowu:',error);return null;}
+  return data;
+}
+
+async function usunPolowDB(id){
+  const {error} = await sb.from('polowy').delete().eq('id',id);
+  if(error){console.error('Błąd usuwania:',error);}
+}
+
+async function aktualizujLikes(id, likes){
+  await sb.from('polowy').update({likes}).eq('id',id);
+}
+
+async function aktualizujKomentarze(id, komentarze){
+  await sb.from('polowy').update({komentarze}).eq('id',id);
+}
+
+async function ladujLowiska(){
+  const {data,error} = await sb.from('lowiska').select('*').order('created_at',{ascending:false});
+  if(error){console.error('Błąd ładowania łowisk:',error);return;}
+  // Dodaj załadowane łowiska do istniejących
+  const zaladowane = (data||[]).map(l=>({
+    id:l.id, name:l.name, region:l.region, type:l.type,
+    fish:l.fish, desc:l.descr, lat:l.lat, lng:l.lng
+  }));
+  LOWISKA_DATA.push(...zaladowane);
+  renderLowiskaMap();
+  document.getElementById('cnt-lowiska').textContent=LOWISKA_DATA.length;
+}
+
+async function zapiszLowisko(l){
+  const {error} = await sb.from('lowiska').insert([{
+    name:l.name, region:l.region, type:l.type,
+    fish:l.fish, descr:l.desc, lat:l.lat, lng:l.lng
+  }]);
+  if(error){console.error('Błąd zapisu łowiska:',error);}
+}
+
+async function usunLowiskoDB(id){
+  await sb.from('lowiska').delete().eq('id',id);
+}
+
+const METODY={
+  spinning:        {label:'Spinning',         icon:'🎯'},
+  muchowe:         {label:'Wędkowanie muchowe',icon:'🪰'},
+  karpiarstwo:     {label:'Karpiarstwo',       icon:'🐠'},
+  feeder_klasyczny:{label:'Feeder klasyczny',  icon:'🎯'},
+  metod_feeder:    {label:'Method feeder',     icon:'🟡'},
+  spławikowe:      {label:'Spławikowe',        icon:'🪱'},
+  vertical:        {label:'Vertical',          icon:'⬇️'},
+  trolling:        {label:'Trolling',          icon:'🚤'},
+  podlodowe:       {label:'Podlodowe',         icon:'🧊'},
+  sumowe:          {label:'Na suma',           icon:'🌙'},
+  inne:            {label:'Inna',              icon:'📌'},
+};
+
+// Realistyczne rekordy Polski (PZW + inne źródła)
+const REKORDY={
+  'Szczupak':         {waga:20.80, dlugosc:130.0, rekordz:'Marian Palawczyk',      rok:1970},
+  'Karp':             {waga:39.60, dlugosc:110.0, rekordz:'Karol Chojecki',         rok:2024},
+  'Sum':              {waga:105.50,dlugosc:292.0, rekordz:'Władysław Bombik / Adrian Gontarz',rok:2017},
+  'Sandacz':          {waga:14.20, dlugosc:108.0, rekordz:'Dariusz Szwed',          rok:2004},
+  'Okoń':             {waga:2.76,  dlugosc:52.0,  rekordz:'Zbigniew Czarny',        rok:2025},
+  'Leszcz':           {waga:7.52,  dlugosc:76.5,  rekordz:'Rafał Rajm',             rok:2021},
+  'Brzana':           {waga:8.60,  dlugosc:93.0,  rekordz:'Rafał Reiter',           rok:2022},
+  'Pstrąg potokowy':  {waga:6.00,  dlugosc:81.0,  rekordz:'Dawid Starzak',          rok:2025},
+  'Pstrąg tęczowy':   {waga:7.30,  dlugosc:75.3,  rekordz:'Jerzy Ryba',             rok:1993},
+  'Pstrąg źródlany':  {waga:2.52,  dlugosc:58.0,  rekordz:'Piotr Piechocki',        rok:2008},
+  'Lipień':           {waga:1.35,  dlugosc:54.0,  rekordz:'Edward Brach',            rok:1971},
+  'Węgorz':           {waga:6.43,  dlugosc:149.0, rekordz:'Janusz Lisowski',         rok:1994},
+  'Amur':             {waga:39.20, dlugosc:132.0, rekordz:'Krzysztof Ławnicki',      rok:1998},
+  'Karaś':            {waga:4.76,  dlugosc:61.0,  rekordz:'Tomasz Dylewicz',         rok:2024},
+  'Płoć':             {waga:1.57,  dlugosc:47.0,  rekordz:'Mariusz Majek',           rok:2011},
+  'Wzdręga':          {waga:1.69,  dlugosc:46.0,  rekordz:'Robert Kozera',           rok:2005},
+  'Jaź':              {waga:4.15,  dlugosc:66.0,  rekordz:'Bartosz Skrzypczak',      rok:2018},
+  'Kleń':             {waga:4.00,  dlugosc:67.0,  rekordz:'Robert Kwasigroch',       rok:2020},
+  'Boleń':            {waga:8.49,  dlugosc:90.0,  rekordz:'Sylwester Głos',          rok:2014},
+  'Miętus':           {waga:4.06,  dlugosc:75.0,  rekordz:'Tomasz Kozak',            rok:2013},
+  'Certa':            {waga:1.74,  dlugosc:51.0,  rekordz:'Kazimierz Stanisławski',  rok:1979},
+  'Tołpyga':          {waga:64.70, dlugosc:147.0, rekordz:'Dariusz Musiał',          rok:2024},
+  'Lin':              {waga:4.96,  dlugosc:62.0,  rekordz:'Kacper Grzelczak',        rok:2025},
+  'Troć wędrowna':    {waga:14.60, dlugosc:105.0, rekordz:'Kazimierz Matusewicz',    rok:1993},
+  'Troć jeziorowa':   {waga:7.30,  dlugosc:83.5,  rekordz:'Piotr Matuszewski',       rok:2006},
+  'Łosoś':            {waga:30.40, dlugosc:130.0, rekordz:'Karol Saari',             rok:1999},
+  'Sieja':            {waga:5.20,  dlugosc:78.0,  rekordz:'Dawid Skorek',            rok:2022},
+  'Głowacica':        {waga:20.30, dlugosc:129.0, rekordz:'Lubomir Hužvik',          rok:2001},
+  'Świnka':           {waga:2.70,  dlugosc:58.0,  rekordz:'Rafał Reiter',            rok:2021},
+  'Rozpiór':          {waga:1.53,  dlugosc:53.0,  rekordz:'Karol Krawiec',           rok:2017},
+};
+
+const ODZNAKI=[
+  {id:'pierwsza', icon:'🐟', name:'Pierwszy połów',  desc:'Dodaj pierwszy połów',       check:(p,u)=>u.count>=1},
+  {id:'piec',     icon:'5️⃣', name:'Pięć połowów',    desc:'Złów 5 ryb',                 check:(p,u)=>u.count>=5},
+  {id:'dziesiec', icon:'🔟', name:'Dziesięć połowów',desc:'Złów 10 ryb',                check:(p,u)=>u.count>=10},
+  {id:'nocny',    icon:'🌙', name:'Nocny łowca',     desc:'Połów nocą na suma',         check:(p,u)=>p.some(x=>x.autor===u.name&&x.metoda==='sumowe')},
+  {id:'zimowy',   icon:'❄️', name:'Zimowy wędkarz',  desc:'Połów podlodowy',           check:(p,u)=>p.some(x=>x.autor===u.name&&x.metoda==='podlodowe')},
+  {id:'muchowy',  icon:'🪰', name:'Muszkar',         desc:'Połów na muchówkę',         check:(p,u)=>p.some(x=>x.autor===u.name&&x.metoda==='muchowe')},
+  {id:'karpik',   icon:'🐠', name:'Karpiarz',        desc:'Połów metodą karpiową',      check:(p,u)=>p.some(x=>x.autor===u.name&&x.metoda==='karpiarstwo')},
+  {id:'rekord',   icon:'🏆', name:'Rekordzista',     desc:'Wbij rekord aplikacji',     check:(p,u)=>p.some(x=>x.autor===u.name&&x.rekord)},
+  {id:'fotograf', icon:'📸', name:'Fotograf',        desc:'Dodaj zdjęcie z połowem',   check:(p,u)=>p.some(x=>x.autor===u.name&&x.img)},
+  {id:'wielki',   icon:'🦈', name:'Wielka ryba',     desc:'Złów rybę powyżej 10kg',    check:(p,u)=>p.some(x=>x.autor===u.name&&x.waga>=10)},
+  {id:'podroznik',icon:'🗺️', name:'Podróżnik',      desc:'Połowy z 3 województw',     check:(p,u)=>new Set(p.filter(x=>x.autor===u.name).map(x=>x.woj)).size>=3},
+  {id:'spolecznik',icon:'❤️',name:'Społecznik',      desc:'Zbierz 50 lajków łącznie',  check:(p,u)=>u.likes>=50},
+];
+
+// Realistyczne łowiska z całej Polski
+const LOWISKA_DATA=[
+  // MAZURY
+  {id:1,name:'Jezioro Śniardwy',region:'warmińsko-mazurskie',type:'Jezioro',fish:'Szczupak',desc:'Największe jezioro w Polsce. 113 km². Szczupak, sandacz, leszcz. Idealne do łowienia z łodzi.',lat:53.730,lng:21.680},
+  {id:2,name:'Jezioro Mamry',region:'warmińsko-mazurskie',type:'Jezioro',fish:'Sandacz',desc:'Drugie co do wielkości jezioro Mazur. Doskonały sandacz i szczupak. Dobre miejsca przy wyspach.',lat:54.120,lng:21.700},
+  {id:3,name:'Jezioro Niegocin',region:'warmińsko-mazurskie',type:'Jezioro',fish:'Szczupak',desc:'Popularny wśród wędkarzy. Bogata fauna ryb. Dobry dojazd i zaplecze.',lat:54.030,lng:21.760},
+  {id:4,name:'Jezioro Dobskie',region:'warmińsko-mazurskie',type:'Jezioro',fish:'Węgorz',desc:'Spokojne jezioro z bogatą populacją węgorza. Dobre wyniki na żywca.',lat:54.080,lng:21.580},
+  {id:5,name:'Jezioro Roś',region:'warmińsko-mazurskie',type:'Jezioro',fish:'Sandacz',desc:'Duże jezioro połączone z Pisą. Sandacz i szczupak. Wędkowanie z brzegu i łodzi.',lat:53.610,lng:21.880},
+  {id:6,name:'Jezioro Jeziorak',region:'warmińsko-mazurskie',type:'Jezioro',fish:'Szczupak',desc:'Najdłuższe jezioro w Polsce. 27 km długości. Szczupak, lin, karaś.',lat:53.680,lng:19.640},
+  {id:7,name:'Jezioro Wigry',region:'podlaskie',type:'Jezioro',fish:'Sielawa',desc:'Park Narodowy Wigry. Sielawa, sieja, szczupak, węgorz. Sprawdź regulamin PNW.',lat:54.020,lng:23.060},
+  // POMORZE I PÓŁNOC
+  {id:8,name:'Jezioro Gopło',region:'kujawsko-pomorskie',type:'Jezioro',fish:'Szczupak',desc:'Historyczne jezioro Piastów. Szczupak, karp, płoć. Spokojne wędkowanie.',lat:52.570,lng:18.270},
+  {id:9,name:'Jezioro Charzykowskie',region:'pomorskie',type:'Jezioro',fish:'Pstrąg potokowy',desc:'Czysta woda, ryby łososiowate. Piękna okolica Borów Tucholskich.',lat:53.780,lng:17.890},
+  {id:10,name:'Jezioro Raduńskie Górne',region:'pomorskie',type:'Jezioro',fish:'Szczupak',desc:'Kaszubskie jezioro w okolicach Kartuz. Szczupak i sandacz.',lat:54.280,lng:18.130},
+  {id:11,name:'Rzeka Drwęca',region:'kujawsko-pomorskie',type:'Rzeka',fish:'Pstrąg potokowy',desc:'Chroniona rzeka, strefa ochronna. Pstrąg potokowy i lipień. Sprawdź przepisy!',lat:53.060,lng:19.560},
+  // MAZOWSZE
+  {id:12,name:'Zalew Zegrzyński',region:'mazowieckie',type:'Zalew',fish:'Sandacz',desc:'Popularne łowisko niedaleko Warszawy. Sandacz, okoń, szczupak. Najlepsze połowy z łodzi.',lat:52.520,lng:21.060},
+  {id:13,name:'Wisła — Warszawa',region:'mazowieckie',type:'Rzeka',fish:'Sum',desc:'Sum, sandacz, brzana. Dobre miejsca pod mostami i przy ostrogach. Nocne połowy.',lat:52.230,lng:21.010},
+  {id:14,name:'Wisła — Płock',region:'mazowieckie',type:'Rzeka',fish:'Boleń',desc:'Boleń i brzana. Szybki nurt, dobre spinning. Okolice Płocka bardzo produktywne.',lat:52.550,lng:19.700},
+  {id:15,name:'Jezioro Łąckie',region:'mazowieckie',type:'Jezioro',fish:'Karaś',desc:'Małe spokojne jezioro. Karaś, lin, karp. Idealne dla początkujących.',lat:52.410,lng:20.940},
+  // WIELKOPOLSKA
+  {id:16,name:'Jezioro Powidzkie',region:'wielkopolskie',type:'Jezioro',fish:'Sandacz',desc:'Jedno z najczystszych jezior Wielkopolski. Sandacz, szczupak, sielawa.',lat:52.420,lng:17.880},
+  {id:17,name:'Jezioro Wolsztyńskie',region:'wielkopolskie',type:'Jezioro',fish:'Karp',desc:'Karp, szczupak, lin. Komercyjne łowisko z dobrą infrastrukturą.',lat:52.130,lng:16.100},
+  {id:18,name:'Warta — Poznań',region:'wielkopolskie',type:'Rzeka',fish:'Boleń',desc:'Boleń, szczupak, sandacz. Dobre miejsca przy wałach i starorzeczach.',lat:52.400,lng:16.920},
+  {id:19,name:'Jezioro Zbąszyńskie',region:'wielkopolskie',type:'Jezioro',fish:'Lin',desc:'Lin, karaś, karp. Spokojna okolica, dobry dojazd.',lat:52.240,lng:15.820},
+  // ŚLĄSK I POŁUDNIE
+  {id:20,name:'Zbiornik Goczałkowicki',region:'śląskie',type:'Zalew',fish:'Sandacz',desc:'Duży zbiornik retencyjny. Sandacz, szczupak, leszcz. Wędkowanie z brzegu i łodzi.',lat:49.940,lng:18.960},
+  {id:21,name:'Odra — Wrocław',region:'dolnośląskie',type:'Rzeka',fish:'Sum',desc:'Sum, sandacz, kleń. Duże ryby przy filarach mostów. Nocne połowy na suma polecane.',lat:51.100,lng:17.030},
+  {id:22,name:'Nysa Łużycka',region:'dolnośląskie',type:'Rzeka',fish:'Brzana',desc:'Brzana i kleń. Górski charakter rzeki. Spinning i grunt.',lat:51.400,lng:15.010},
+  {id:23,name:'Zbiornik Turawa',region:'opolskie',type:'Zalew',fish:'Szczupak',desc:'Duży zbiornik na Mała Panwi. Szczupak, okoń, sandacz.',lat:50.720,lng:18.150},
+  // MAŁOPOLSKA I PODKARPACIE
+  {id:24,name:'Wisła — Kraków',region:'małopolskie',type:'Rzeka',fish:'Brzana',desc:'Brzana, kleń, okoń. Dobry odcinek pod mostem Dębnickim i Zwierzynieckim.',lat:50.050,lng:19.940},
+  {id:25,name:'San — Przemyśl',region:'podkarpackie',type:'Rzeka',fish:'Pstrąg potokowy',desc:'Górska rzeka o krystalicznej wodzie. Pstrąg i lipień. Wędkowanie muchowe.',lat:49.780,lng:22.770},
+  {id:26,name:'San — Lesko',region:'podkarpackie',type:'Rzeka',fish:'Lipień',desc:'Lipień i pstrąg. Bardzo czysta woda. Jeden z najlepszych odcinków do muchówki.',lat:49.470,lng:22.330},
+  {id:27,name:'Zbiornik Solina',region:'podkarpackie',type:'Zalew',fish:'Sandacz',desc:'Największy zbiornik zaporowy w Polsce. Sandacz, szczupak, pstrąg.',lat:49.370,lng:22.450},
+  {id:28,name:'Czarna Orawa',region:'małopolskie',type:'Rzeka',fish:'Pstrąg potokowy',desc:'Górska rzeka na Orawie. Pstrąg potokowy. Strefa chronionych ryb łososiowatych.',lat:49.510,lng:19.680},
+  {id:29,name:'Raba',region:'małopolskie',type:'Rzeka',fish:'Pstrąg potokowy',desc:'Pstrąg i lipień. Dobry odcinek od Rabki do Myślenic. Muchowe i spinning.',lat:49.730,lng:20.000},
+  // LUBELSKIE I WSCHODNIA POLSKA
+  {id:30,name:'Jezioro Białe (Włodawa)',region:'lubelskie',type:'Jezioro',fish:'Węgorz',desc:'Czystość wody klasy I. Węgorz, szczupak, lin. Bardzo spokojne.',lat:51.530,lng:23.570},
+  {id:31,name:'Bug — Włodawa',region:'lubelskie',type:'Rzeka',fish:'Boleń',desc:'Boleń, brzana, sandacz. Dzika rzeka przygraniczna. Piękna okolica.',lat:51.540,lng:23.550},
+  {id:32,name:'Wieprz — Lublin',region:'lubelskie',type:'Rzeka',fish:'Kleń',desc:'Kleń, okoń, brzana. Spokojna rzeka nizinna.',lat:51.250,lng:22.570},
+  // PODLASKIE
+  {id:33,name:'Narew — Łomża',region:'podlaskie',type:'Rzeka',fish:'Sum',desc:'Sum, sandacz, leszcz. Rzeka naturalna, wiele starorzeczy. Nocne połowy.',lat:53.180,lng:22.060},
+  {id:34,name:'Biebrza',region:'podlaskie',type:'Rzeka',fish:'Szczupak',desc:'Park Narodowy Biebrzański. Szczupak i lin w starorzeczach. Dzika przyroda.',lat:53.430,lng:22.680},
+  // ZACHÓD
+  {id:35,name:'Odra — Szczecin',region:'zachodniopomorskie',type:'Rzeka',fish:'Sandacz',desc:'Sandacz, okoń, leszcz. Duże łowisko przy ujściu Odry. Łowienie z brzegu i łodzi.',lat:53.430,lng:14.550},
+  {id:36,name:'Jezioro Miedwie',region:'zachodniopomorskie',type:'Jezioro',fish:'Sieja',desc:'Duże jezioro woj. zachodniopomorskiego. Sieja, sandacz, szczupak.',lat:53.340,lng:14.910},
+  {id:37,name:'Warta — Gorzów',region:'lubuskie',type:'Rzeka',fish:'Sum',desc:'Sum, sandacz, szczupak. Dolna Warta przed ujściem do Odry.',lat:52.730,lng:15.230},
+  {id:38,name:'Jezioro Sławskie',region:'lubuskie',type:'Jezioro',fish:'Karp',desc:'Popularny kurort. Karp, szczupak, leszcz. Dobre zaplecze turystyczne.',lat:51.890,lng:16.050},
+  // ŁÓDŹ I ŚRODKOWA POLSKA
+  {id:39,name:'Zbiornik Sulejowski',region:'łódzkie',type:'Zalew',fish:'Sandacz',desc:'Duży zbiornik na Pilicy. Sandacz, szczupak, okoń. Wędkowanie z łodzi.',lat:51.390,lng:20.230},
+  {id:40,name:'Pilica — Tomaszów',region:'łódzkie',type:'Rzeka',fish:'Brzana',desc:'Brzana, kleń, pstrąg w górnym biegu. Dobry spinning i grunt.',lat:51.540,lng:20.020},
+];
+
+const AVATAR_COLORS=['#3a7d2c','#1e6b8a','#8a3a1e','#6b1e8a','#1e8a6b','#8a6b1e','#3a3a8a','#8a3a6b'];
+const FISH_EMOJIS={Szczupak:'🐟',Karp:'🐠',Sandacz:'🐡',Sum:'🦈','Pstrąg potokowy':'🐟','Pstrąg tęczowy':'🐟',Okoń:'🐟',Węgorz:'🐍',Lin:'🐟',Boleń:'🐟'};
+
+let polowy=[];
+let currentUser='Gość';
+let isPrivate=false;
+let feedFilter='all';
+let mapFilter='all';
+let rankTab='ogolny';
+let lowiskaFilter='all';
+let currentImg=null;
+let mapMarkers={};
+let leafletMap=null;
+let mapTab='polowy';
+let tempMarker=null;
+let tempLat=null;
+let tempLng=null;
+
+function ac(n){return AVATAR_COLORS[n.charCodeAt(0)%AVATAR_COLORS.length];}
+function fe(g){return FISH_EMOJIS[g]||'🐟';}
+function getLevel(c){
+  if(c>=50)return{name:'Legenda Łowisk',emoji:'🏆',cls:'lvl-5',next:null,xp:100};
+  if(c>=30)return{name:'Mistrz Wędki',emoji:'🐟',cls:'lvl-4',next:50,xp:Math.round((c-30)/20*100)};
+  if(c>=15)return{name:'Wędkarz',emoji:'🎣',cls:'lvl-3',next:30,xp:Math.round((c-15)/15*100)};
+  if(c>=5) return{name:'Początkujący',emoji:'🐛',cls:'lvl-2',next:15,xp:Math.round((c-5)/10*100)};
+  return{name:'Nowicjusz',emoji:'🪨',cls:'lvl-1',next:5,xp:Math.round(c/5*100)};
+}
+function getUserStats(autor){
+  const up=polowy.filter(x=>x.autor===autor);
+  return{name:autor,count:up.length,maxWaga:up.reduce((a,x)=>Math.max(a,x.waga),0),maxDlugosc:up.reduce((a,x)=>Math.max(a,x.dlugosc),0),likes:up.reduce((a,x)=>a+x.likes,0)};
+}
+function getBadges(autor){
+  const s=getUserStats(autor);
+  return ODZNAKI.filter(b=>{try{return b.check(polowy,s);}catch(e){return false;}});
+}
+
+// ===== NAWIGACJA =====
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='mapa'&&leafletMap){setTimeout(()=>leafletMap.invalidateSize(),100);}
+  if(name==='ranking') renderRanking();
+  if(name==='kalkulator') renderRekordyTable();
+  if(name==='sezony') renderSezony();
+  if(name==='fishdex') renderFishDex();
+  if(name==='profil') renderProfil();
+}
+
+// ===== MAPA =====
+function initMap(){
+  if(leafletMap) return;
+  leafletMap=L.map('map',{center:[52.0,19.5],zoom:6});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(leafletMap);
+
+  // Kliknięcie na mapę = pinezka łowiska (tylko w trybie łowisk)
+  leafletMap.on('click',function(e){
+    if(mapTab!=='lowiska') return;
+    if(!document.getElementById('lowiskoForm').classList.contains('open')) return;
+    if(tempMarker) leafletMap.removeLayer(tempMarker);
+    tempLat=e.latlng.lat; tempLng=e.latlng.lng;
+    tempMarker=L.marker([tempLat,tempLng],{
+      icon:L.divIcon({
+        html:`<div style="background:#f0c040;border:3px solid #0d1a0f;border-radius:50% 50% 50% 0;width:26px;height:26px;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>`,
+        className:'',iconSize:[26,26],iconAnchor:[13,26]
+      })
+    }).addTo(leafletMap).bindPopup('📍 Lokalizacja łowiska').openPopup();
+    document.getElementById('pin-info').textContent=`✅ Pinezka ustawiona! (${tempLat.toFixed(4)}, ${tempLng.toFixed(4)})`;
+    document.getElementById('pin-info').style.color='var(--accent)';
+  });
+
+  renderLowiskaMap();
+}
+
+function setMapTab(tab){
+  mapTab=tab;
+  const bp=document.getElementById('mtab-polowy');
+  const bl=document.getElementById('mtab-lowiska');
+  if(tab==='polowy'){
+    bp.style.background='var(--green)';bp.style.color='white';
+    bl.style.background='transparent';bl.style.color='var(--text-dim)';
+    document.getElementById('map-panel-polowy').style.display='block';
+    document.getElementById('map-panel-lowiska').style.display='none';
+    renderMap();
+  } else {
+    bl.style.background='var(--water)';bl.style.color='white';
+    bp.style.background='transparent';bp.style.color='var(--text-dim)';
+    document.getElementById('map-panel-polowy').style.display='none';
+    document.getElementById('map-panel-lowiska').style.display='block';
+    renderLowiskaMap();
+  }
+}
+
+// Połowy na mapie
+function renderMap(){
+  if(!leafletMap) return;
+  Object.values(mapMarkers).forEach(m=>leafletMap.removeLayer(m));
+  mapMarkers={};
+  document.getElementById('cards-container').innerHTML='';
+  const filtered=mapFilter==='all'?polowy:polowy.filter(p=>p.gatunek===mapFilter);
+  document.getElementById('cnt-polowy').textContent=polowy.length;
+  if(!filtered.length){
+    document.getElementById('cards-container').innerHTML='<div class="empty-state"><p>Brak połowów.<br>Dodaj pierwszy w zakładce Połowy!</p></div>';
+    return;
+  }
+  // Dynamiczne filtry gatunków
+  const gatunki=[...new Set(polowy.map(p=>p.gatunek))];
+  const filterBar=document.getElementById('polowy-filter-bar');
+  filterBar.innerHTML=`<button class="fchip ${mapFilter==='all'?'active':''}" onclick="filterMap(this,'all')">Wszystkie</button>`
+    +gatunki.map(g=>`<button class="fchip ${mapFilter===g?'active':''}" onclick="filterMap(this,'${g}')">${fe(g)} ${g}</button>`).join('');
+  filtered.forEach(p=>{
+    const coords=getPolowyCoords(p);
+    const lvl=getLevel(polowy.filter(x=>x.autor===p.autor).length);
+    const card=document.createElement('div');
+    card.className='lowisko-card';
+    card.innerHTML=`<div class="lc-header"><div class="lc-icon">${fe(p.gatunek)}</div><div><div class="lc-name">${p.gatunek} — ${p.waga}kg</div><div class="lc-region">👤 ${p.autor} · 📍 ${p.lowisko}</div></div></div><div class="lc-tags"><span class="ltag ltag-fish">${p.woj}</span><span class="ltag ltag-type">${p.data}</span></div>`;
+    card.onclick=()=>{leafletMap.flyTo([coords.lat,coords.lng],11,{duration:1});if(mapMarkers[p.id])mapMarkers[p.id].openPopup();};
+    document.getElementById('cards-container').appendChild(card);
+    const mk=L.marker([coords.lat,coords.lng],{icon:L.divIcon({html:`<div style="background:${ac(p.autor)};border:2.5px solid #a8e063;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.4)">${fe(p.gatunek)}</div>`,className:'',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-17]})})
+      .addTo(leafletMap)
+      .bindPopup(`<div class="popup-title">${fe(p.gatunek)} ${p.gatunek} — ${p.waga}kg / ${p.dlugosc}cm</div><div class="popup-info">👤 ${p.autor} <span class="level-badge ${lvl.cls}">${lvl.emoji}</span><br>📍 ${p.lowisko} · ${p.woj}<br>🎣 ${(METODY[p.metoda]||{icon:'🎣'}).icon} ${(METODY[p.metoda]||{label:'—'}).label}<br>📅 ${p.data}${p.opis?'<br><em style="color:#7a9a7a">'+p.opis+'</em>':''}</div>`);
+    mapMarkers[p.id]=mk;
+  });
+}
+
+function filterMap(btn,type){
+  document.querySelectorAll('#polowy-filter-bar .fchip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');mapFilter=type;renderMap();
+}
+
+// Łowiska na mapie
+function renderLowiskaMap(){
+  if(!leafletMap) return;
+  Object.values(mapMarkers).forEach(m=>leafletMap.removeLayer(m));
+  mapMarkers={};
+  document.getElementById('lowiska-container').innerHTML='';
+  const filtered=lowiskaFilter==='all'?LOWISKA_DATA:LOWISKA_DATA.filter(l=>l.type===lowiskaFilter);
+  document.getElementById('cnt-lowiska').textContent=LOWISKA_DATA.length;
+  filtered.forEach(l=>{
+    const card=document.createElement('div');
+    card.className='lowisko-card';
+    card.innerHTML=`<div class="lc-header"><div class="lc-icon">🗺️</div><div><div class="lc-name">${l.name}</div><div class="lc-region">📍 ${l.region} · ${l.type}</div></div><button onclick="event.stopPropagation();usunLowisko(${l.id})" style="margin-left:auto;background:transparent;border:1px solid rgba(224,85,85,0.4);border-radius:20px;padding:2px 8px;color:rgba(224,85,85,0.6);font-size:10px;cursor:pointer;" title="Usuń łowisko">🗑️</button></div><div class="lc-tags"><span class="ltag ltag-fish">🐟 ${l.fish}</span><span class="ltag ltag-type">${l.type}</span></div>`;
+    card.onclick=()=>{leafletMap.flyTo([l.lat,l.lng],12,{duration:1});if(mapMarkers['l'+l.id])mapMarkers['l'+l.id].openPopup();};
+    document.getElementById('lowiska-container').appendChild(card);
+    const mk=L.marker([l.lat,l.lng],{icon:L.divIcon({html:`<div style="background:#1e6b8a;border:2.5px solid #a8e063;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🗺️</div>`,className:'',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-17]})})
+      .addTo(leafletMap)
+      .bindPopup(`<div class="popup-title">🗺️ ${l.name}</div><div class="popup-info">📍 ${l.region} · ${l.type}<br>🐟 ${l.fish}${l.desc?'<br><em style="color:#7a9a7a">'+l.desc+'</em>':''}</div>`);
+    mapMarkers['l'+l.id]=mk;
+  });
+}
+
+function filterLowiska(btn,type){
+  document.querySelectorAll('#map-panel-lowiska .fchip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');lowiskaFilter=type;renderLowiskaMap();
+}
+
+function toggleLowiskoForm(){
+  document.getElementById('lowiskoForm').classList.toggle('open');
+  if(document.getElementById('lowiskoForm').classList.contains('open')){
+    document.getElementById('pin-info').textContent='📍 Kliknij na mapie aby ustawić lokalizację łowiska';
+    document.getElementById('pin-info').style.color='var(--water-light)';
+    tempLat=null;tempLng=null;
+  }
+}
+
+async function addLowisko(){
+  const name=document.getElementById('lf-name').value.trim();
+  if(!name){alert('Podaj nazwę łowiska!');return;}
+  const lat=tempLat||52.0+Math.random()*3-1.5;
+  const lng=tempLng||19.5+Math.random()*6-3;
+  const nowe={
+    id:Date.now(),name,
+    region:document.getElementById('lf-region').value,
+    type:document.getElementById('lf-type').value,
+    fish:document.getElementById('lf-fish').value,
+    desc:document.getElementById('lf-desc').value.trim(),
+    lat,lng
+  };
+  LOWISKA_DATA.push(nowe);
+  await zapiszLowisko(nowe);
+  if(tempMarker){leafletMap.removeLayer(tempMarker);tempMarker=null;}
+  tempLat=null;tempLng=null;
+  ['lf-name','lf-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('lowiskoForm').classList.remove('open');
+  renderLowiskaMap();
+  leafletMap.flyTo([lat,lng],12,{duration:1});
+}
+
+function getPolowyCoords(p){
+  const wc={'warmińsko-mazurskie':{lat:53.8,lng:21.5},'małopolskie':{lat:50.0,lng:20.0},'wielkopolskie':{lat:52.4,lng:17.0},'mazowieckie':{lat:52.2,lng:21.0},'podkarpackie':{lat:49.8,lng:22.5},'podlaskie':{lat:53.5,lng:23.0},'dolnośląskie':{lat:51.1,lng:17.0},'kujawsko-pomorskie':{lat:53.1,lng:18.5},'lubelskie':{lat:51.2,lng:23.0},'lubuskie':{lat:52.0,lng:15.5},'łódzkie':{lat:51.8,lng:19.5},'opolskie':{lat:50.7,lng:17.9},'pomorskie':{lat:54.2,lng:18.5},'śląskie':{lat:50.3,lng:19.0},'świętokrzyskie':{lat:50.9,lng:20.7},'zachodniopomorskie':{lat:53.5,lng:15.5}};
+  const base=wc[p.woj]||{lat:52.0,lng:19.5};
+  const seed=p.id%1000;
+  return{lat:base.lat+(seed%100-50)/200,lng:base.lng+(Math.floor(seed/100)%100-50)/200};
+}
+
+// ===== FEED =====
+function renderFeed(){
+  const feed=document.getElementById('feed');feed.innerHTML='';
+  let f=polowy;
+  if(feedFilter==='rekordy') f=polowy.filter(p=>p.rekord);
+  else if(feedFilter!=='all') f=polowy.filter(p=>p.metoda===feedFilter);
+  if(!f.length){feed.innerHTML='<div class="empty-state"><p>Brak połowów.<br>Bądź pierwszy i dodaj swój połów! 🎣</p></div>';return;}
+  f.forEach(p=>{
+    const cnt=polowy.filter(x=>x.autor===p.autor).length;
+    const lvl=getLevel(cnt);
+    const m=METODY[p.metoda]||{label:'Inna',icon:'📌'};
+    const rek=REKORDY[p.gatunek];
+    let nearRecord='';
+    if(rek&&p.waga>0){
+      const pct=Math.round(p.waga/rek.waga*100);
+      if(pct>=90) nearRecord=`🔥 To aż ${pct}% rekordu Polski! Fenomenalna ryba!`;
+      else if(pct>=70) nearRecord=`⭐ ${pct}% rekordu Polski — świetna sztuka!`;
+    }
+    const card=document.createElement('div');card.className='catch-card';
+    card.innerHTML=`
+      ${p.img?`<img class="card-img" src="${p.img}" alt="${p.gatunek}">`:`<div class="card-img-ph">${fe(p.gatunek)}</div>`}
+      <div class="card-body">
+        <div class="card-top">
+          <div class="avatar" style="background:${ac(p.autor)}" onclick="openProfilModal('${p.autor}')">${p.autor[0]}</div>
+          <div>
+            <div class="card-author-name" onclick="openProfilModal('${p.autor}')">${p.autor} <span class="level-badge ${lvl.cls}">${lvl.emoji} ${lvl.name}</span></div>
+            <div class="card-date">${p.data} · 📍 ${p.woj}</div>
+          </div>
+          ${p.rekord?`<div class="record-badge">🏆 REKORD</div>`:''}
+        </div>
+        <div class="fish-name-big">${p.gatunek.toUpperCase()}</div>
+        <div class="fish-stats">
+          <div class="fish-stat"><div class="fs-val">${p.dlugosc}<small style="font-size:9px">cm</small></div><div class="fs-lbl">Długość</div></div>
+          <div class="fish-stat"><div class="fs-val">${p.waga}<small style="font-size:9px">kg</small></div><div class="fs-lbl">Waga</div></div>
+          <div class="fish-stat"><div class="fs-val" style="font-size:11px">${p.zbiornik}</div><div class="fs-lbl">Zbiornik</div></div>
+        </div>
+        <div class="card-tags">
+          <span class="ctag ctag-w">📍 ${p.lowisko}</span>
+          <span class="ctag ctag-p">${p.pogoda}</span>
+          <span class="ctag ctag-m">${m.icon} ${m.label}</span>
+        </div>
+        ${nearRecord?`<div class="record-near">${nearRecord}</div>`:''}
+        ${p.opis?`<div class="card-desc">${p.opis}</div>`:''}
+        <div class="card-footer">
+          <button class="like-btn ${p.liked?'liked':''}" onclick="toggleLike(${p.id})">${p.liked?'❤️':'🤍'} ${p.likes}</button>
+          <button class="comment-btn" onclick="toggleComments(${p.id})">💬 ${p.komentarze.length}</button>
+          <span style="font-size:10px;color:var(--text-dim);margin-left:auto">🐟 ${p.gatunek}</span>
+          <button onclick="usunPolow(${p.id})" style="background:transparent;border:1.5px solid rgba(224,85,85,0.4);border-radius:50px;padding:4px 9px;color:rgba(224,85,85,0.6);font-size:10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;" title="Usuń połów">🗑️</button>
+        </div>
+      </div>
+      <div class="comments-section" id="cs-${p.id}">
+        ${p.komentarze.map(k=>`<div class="comment-item"><div class="comment-avatar" style="background:${ac(k.autor)}">${k.autor[0]}</div><div class="comment-bubble"><div class="comment-author">${k.autor} <span style="font-size:9px;color:var(--text-dim);font-weight:400">${k.data}</span></div><div class="comment-text">${k.tekst}</div></div></div>`).join('')}
+        <div class="comment-input-row">
+          <input class="comment-input" id="ci-${p.id}" placeholder="Napisz komentarz..." onkeydown="if(event.key==='Enter')addComment(${p.id})">
+          <button class="comment-send" onclick="addComment(${p.id})">Wyślij</button>
+        </div>
+      </div>`;
+    feed.appendChild(card);
+  });
+  updateStats();
+}
+
+function toggleComments(id){const s=document.getElementById('cs-'+id);if(s){s.classList.toggle('open');if(s.classList.contains('open')){const i=document.getElementById('ci-'+id);if(i)i.focus();}}}
+function addComment(id){
+  const input=document.getElementById('ci-'+id);
+  if(!input)return;
+  const tekst=input.value.trim();if(!tekst)return;
+  const p=polowy.find(x=>x.id===id);if(!p)return;
+  p.komentarze.push({autor:currentUser,tekst,data:'teraz'});
+  aktualizujKomentarze(id,p.komentarze);
+  renderFeed();
+  setTimeout(()=>{const s=document.getElementById('cs-'+id);if(s)s.classList.add('open');},30);
+}
+function toggleLike(id){
+  const p=polowy.find(x=>x.id===id);if(!p)return;
+  p.liked=!p.liked;p.likes+=p.liked?1:-1;
+  aktualizujLikes(id,p.likes);
+  renderFeed();
+}
+function setFeedFilter(btn,val){document.querySelectorAll('#page-polowy .fchip').forEach(c=>c.classList.remove('active'));btn.classList.add('active');feedFilter=val;renderFeed();}
+function usunPolow(id){
+  if(!confirm('Usunąć ten połów?'))return;
+  polowy=polowy.filter(x=>x.id!==id);
+  usunPolowDB(id);
+  renderFeed();renderMap();
+}
+
+function usunLowisko(id){
+  if(!confirm('Usunąć to łowisko?'))return;
+  const idx=LOWISKA_DATA.findIndex(x=>x.id===id);
+  if(idx>-1)LOWISKA_DATA.splice(idx,1);
+  usunLowiskoDB(id);
+  renderLowiskaMap();
+}
+
+function updateStats(){
+  document.getElementById('total-catch').textContent=polowy.length;
+  if(polowy.length){
+    document.getElementById('biggest-fish').textContent=Math.max(...polowy.map(p=>p.waga))+'kg';
+    document.getElementById('longest-fish').textContent=Math.max(...polowy.map(p=>p.dlugosc))+'cm';
+  } else {
+    document.getElementById('biggest-fish').textContent='0kg';
+    document.getElementById('longest-fish').textContent='0cm';
+  }
+}
+
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');currentImg=null;document.getElementById('imgPreview').style.display='none';document.getElementById('uploadInner').style.display='block';}
+function previewImg(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{currentImg=e.target.result;const pv=document.getElementById('imgPreview');pv.src=currentImg;pv.style.display='block';document.getElementById('uploadInner').style.display='none';};r.readAsDataURL(file);}
+
+async function dodajPolow(){
+  const autor=document.getElementById('f-autor').value.trim();
+  if(!autor){alert('Podaj imię!');return;}
+  const dlugosc=parseFloat(document.getElementById('f-dlugosc').value)||0;
+  const waga=parseFloat(document.getElementById('f-waga').value)||0;
+  const gatunek=document.getElementById('f-gatunek').value;
+  const maxW=polowy.length?Math.max(...polowy.map(p=>p.waga)):0;
+  const maxD=polowy.length?Math.max(...polowy.map(p=>p.dlugosc)):0;
+  const rekord=waga>maxW||dlugosc>maxD;
+  const now=new Date();
+  const msc=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  const prevCnt=polowy.filter(x=>x.autor===autor).length;
+  const nowyPolow={
+    autor,gatunek,dlugosc,waga,
+    metoda:document.getElementById('f-metoda').value,
+    zbiornik:document.getElementById('f-zbiornik').value,
+    pogoda:document.getElementById('f-pogoda').value,
+    woj:document.getElementById('f-woj').value,
+    lowisko:document.getElementById('f-lowisko').value||'Nieznane łowisko',
+    opis:document.getElementById('f-opis').value.trim(),
+    img:currentImg,likes:0,liked:false,
+    data:`${now.getDate()} ${msc[now.getMonth()]} ${now.getFullYear()}`,
+    rekord,komentarze:[]
+  };
+  // Zapisz do Supabase
+  const zapisany = await zapiszPolow(nowyPolow);
+  if(zapisany){
+    nowyPolow.id = zapisany.id;
+  } else {
+    nowyPolow.id = Date.now();
+  }
+  currentUser=autor;
+  const newCnt=polowy.filter(x=>x.autor===autor).length+1;
+  const lvl=getLevel(newCnt),prevLvl=getLevel(prevCnt);
+  polowy.unshift(nowyPolow);
+  closeModal();
+  feedFilter='all';document.querySelectorAll('#page-polowy .fchip').forEach((c,i)=>c.classList.toggle('active',i===0));
+  renderFeed();renderMap();
+  if(rekord) setTimeout(()=>alert('🏆 Nowy rekord aplikacji! Gratulacje!'),200);
+  else if(lvl.name!==prevLvl.name) setTimeout(()=>alert(`⬆️ Awans! ${lvl.emoji} ${lvl.name}!`),200);
+}
+
+// ===== RANKING =====
+function setRankTab(btn,tab){document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');rankTab=tab;renderRanking();}
+function renderRanking(){
+  const list=document.getElementById('ranking-list');list.innerHTML='';
+  const medals=['🥇','🥈','🥉'];const posC=['gold','silver','bronze'];
+  if(rankTab==='ogolny'){
+    const stats={};
+    polowy.forEach(p=>{if(!stats[p.autor])stats[p.autor]={name:p.autor,count:0,maxWaga:0,maxDlugosc:0,likes:0};stats[p.autor].count++;stats[p.autor].maxWaga=Math.max(stats[p.autor].maxWaga,p.waga);stats[p.autor].maxDlugosc=Math.max(stats[p.autor].maxDlugosc,p.dlugosc);stats[p.autor].likes+=p.likes;});
+    const sorted=Object.values(stats).sort((a,b)=>b.count-a.count||b.likes-a.likes);
+    if(!sorted.length){list.innerHTML='<div class="no-data">Brak połowów. Bądź pierwszy! 🎣</div>';return;}
+    sorted.forEach((u,i)=>{
+      const lvl=getLevel(u.count);
+      const card=document.createElement('div');card.className=`rank-card ${i<3?'top'+(i+1):''}`;
+      card.innerHTML=`<div class="rank-pos ${i<3?posC[i]:''}">${i<3?medals[i]:'#'+(i+1)}</div><div class="rank-avatar" style="background:${ac(u.name)}" onclick="openProfilModal('${u.name}')">${u.name[0]}</div><div class="rank-info"><div class="rank-name">${u.name} <span class="level-badge ${lvl.cls}">${lvl.emoji} ${lvl.name}</span></div><div class="rank-sub">❤️ ${u.likes} lajków · Rekord: ${u.maxWaga}kg / ${u.maxDlugosc}cm</div><div class="xp-bar-bg"><div class="xp-bar-fill" style="width:${lvl.xp}%"></div></div><div class="xp-text">${lvl.next?u.count+'/'+lvl.next+' połowów':'MAX ⭐'}</div></div><div><div class="rs-val">${u.count}</div><div class="rs-lbl">Połowy</div></div>`;
+      list.appendChild(card);
+    });
+  } else {
+    const m=METODY[rankTab]||{label:rankTab,icon:'🎣'};
+    const filtered=polowy.filter(p=>p.metoda===rankTab).sort((a,b)=>b.waga-a.waga);
+    if(!filtered.length){list.innerHTML=`<div class="no-data">${m.icon} Brak połowów metodą <strong>${m.label}</strong>. Bądź pierwszy!</div>`;return;}
+    const t=document.createElement('div');t.style.cssText='font-size:11px;color:var(--text-dim);margin-bottom:9px;';t.innerHTML=`${m.icon} Największe ryby — <strong style="color:var(--text)">${m.label}</strong>`;list.appendChild(t);
+    filtered.forEach((p,i)=>{
+      const card=document.createElement('div');card.className=`rank-card ${i<3?'top'+(i+1):''}`;
+      card.innerHTML=`<div class="rank-pos ${i<3?posC[i]:''}">${i<3?medals[i]:'#'+(i+1)}</div><div class="rank-avatar" style="background:${ac(p.autor)}" onclick="openProfilModal('${p.autor}')">${p.autor[0]}</div><div class="rank-info"><div class="rank-name">${p.gatunek.toUpperCase()}</div><div class="rank-sub">👤 ${p.autor} · ${p.lowisko} · ${p.data}</div></div><div><div class="rs-val">${p.waga}<small style="font-size:10px">kg</small></div><div class="rs-lbl">${p.dlugosc}cm</div></div>`;
+      list.appendChild(card);
+    });
+  }
+}
+
+// ===== KALKULATOR =====
+function renderRekordyTable(){
+  document.getElementById('rekords-tbody').innerHTML=Object.entries(REKORDY).map(([g,r])=>`<tr><td>${g}</td><td style="color:var(--accent);font-weight:800">${r.waga} kg</td><td style="color:var(--water-light)">${r.dlugosc} cm</td><td style="color:var(--text-dim);font-size:10px">${r.rekordz}</td><td>${r.rok}</td></tr>`).join('');
+}
+function obliczRekord(){
+  const gatunek=document.getElementById('k-gatunek').value;
+  const waga=parseFloat(document.getElementById('k-waga').value)||0;
+  const dlugosc=parseFloat(document.getElementById('k-dlugosc').value)||0;
+  if(!waga&&!dlugosc){alert('Wpisz wagę lub długość!');return;}
+  const rek=REKORDY[gatunek];if(!rek)return;
+  const pctW=waga?Math.round(waga/rek.waga*100):0;
+  const pctD=dlugosc?Math.round(dlugosc/rek.dlugosc*100):0;
+  const max=Math.max(pctW,pctD);
+  let verdict,cls;
+  if(max>=100){verdict='🏆 NOWY REKORD POLSKI! Skontaktuj się z PZW!';cls='amazing';}
+  else if(max>=90){verdict='🔥 Fenomenalna ryba! Prawie rekord Polski!';cls='amazing';}
+  else if(max>=70){verdict='⭐ Świetna sztuka! W czołówce polskich wędkarzy!';cls='great';}
+  else if(max>=50){verdict='👍 Dobra ryba! Powyżej przeciętnej!';cls='good';}
+  else{verdict='🎣 Fajny połów! Rekord czeka — trenuj dalej!';cls='normal';}
+  const res=document.getElementById('kalk-result');res.className='kalk-result show';
+  res.innerHTML=`<div class="kr-gatunek">${gatunek.toUpperCase()}</div>
+    ${waga?`<div class="kr-bar-row"><div class="kr-bar-label">Waga</div><div class="kr-bar-bg"><div class="kr-bar-fill" style="width:${Math.min(pctW,100)}%;background:linear-gradient(90deg,var(--green),var(--accent))"></div></div><div class="kr-bar-val" style="color:var(--accent)">${pctW}%</div></div><div class="kr-sub">Twoja: ${waga}kg · Rekord PL: ${rek.waga}kg (${rek.rekordz}, ${rek.rok})</div>`:''}
+    ${dlugosc?`<div class="kr-bar-row"><div class="kr-bar-label">Długość</div><div class="kr-bar-bg"><div class="kr-bar-fill" style="width:${Math.min(pctD,100)}%;background:linear-gradient(90deg,var(--water),var(--water-light))"></div></div><div class="kr-bar-val" style="color:var(--water-light)">${pctD}%</div></div><div class="kr-sub">Twoja: ${dlugosc}cm · Rekord PL: ${rek.dlugosc}cm</div>`:''}
+    <div class="kr-verdict ${cls}">${verdict}</div>`;
+}
+
+// ===== PROFIL =====
+function togglePrivacy(){isPrivate=document.getElementById('privacy-toggle').checked;document.getElementById('privacy-label').textContent=isPrivate?'🔒 Profil prywatny':'🌍 Profil publiczny';document.getElementById('privacy-desc').textContent=isPrivate?'Twoje połowy widoczne tylko dla Ciebie':'Twoje połowy widoczne dla innych';}
+function zmienImie(){const val=document.getElementById('profil-imie-input').value.trim();if(!val){alert('Wpisz imię!');return;}currentUser=val;document.getElementById('profil-imie-input').value='';renderProfil();}
+function renderProfil(){
+  const s=getUserStats(currentUser);const lvl=getLevel(s.count);
+  const badges=getBadges(currentUser);const userPolowy=polowy.filter(p=>p.autor===currentUser);
+  document.getElementById('profil-avatar-big').textContent=currentUser[0];
+  document.getElementById('profil-avatar-big').style.background=ac(currentUser);
+  document.getElementById('profil-name-big').textContent=currentUser;
+  document.getElementById('profil-level-badge').innerHTML=`<span class="level-badge ${lvl.cls}" style="font-size:12px;padding:3px 10px">${lvl.emoji} ${lvl.name}</span>`;
+  document.getElementById('ps-polowy').textContent=s.count;
+  document.getElementById('ps-rekord-w').textContent=s.maxWaga+'kg';
+  document.getElementById('ps-rekord-d').textContent=s.maxDlugosc+'cm';
+  document.getElementById('ps-likes').textContent=s.likes;
+  document.getElementById('badges-grid').innerHTML=ODZNAKI.map(b=>{let earned=false;try{earned=b.check(polowy,s);}catch(e){}return`<div class="badge-card ${earned?'earned':'locked'}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div></div>`;}).join('');
+  const dz=document.getElementById('dziennik-list');
+  if(!userPolowy.length){dz.innerHTML='<div class="empty-state"><p>Brak połowów w dzienniku.</p></div>';return;}
+  dz.innerHTML=userPolowy.map(p=>{const m=METODY[p.metoda]||{icon:'🎣'};return`<div class="dziennik-item"><div class="di-icon">${fe(p.gatunek)}</div><div><div class="di-fish">${p.gatunek} ${p.rekord?'🏆':''}</div><div class="di-meta">${p.data} · ${m.icon} ${p.lowisko} · ${p.woj}</div></div><div class="di-waga">${p.waga}kg</div></div>`;}).join('');
+}
+
+// ===== PROFIL MODAL =====
+function openProfilModal(autor){
+  const s=getUserStats(autor);const lvl=getLevel(s.count);
+  const up=polowy.filter(p=>p.autor===autor);
+  document.getElementById('pm-avatar').textContent=autor[0];
+  document.getElementById('pm-avatar').style.background=ac(autor);
+  document.getElementById('pm-name').textContent=autor;
+  document.getElementById('pm-level').innerHTML=`<span class="level-badge ${lvl.cls}">${lvl.emoji} ${lvl.name}</span>`;
+  document.getElementById('pm-stats').innerHTML=`<div class="pm-stat"><div class="pm-stat-val">${s.count}</div><div class="pm-stat-lbl">Połowy</div></div><div class="pm-stat"><div class="pm-stat-val">${s.maxWaga}kg</div><div class="pm-stat-lbl">Rekord</div></div><div class="pm-stat"><div class="pm-stat-val">${s.likes}</div><div class="pm-stat-lbl">Lajki</div></div>`;
+  document.getElementById('pm-polowy').innerHTML=up.slice(0,5).map(p=>`<div class="pm-item"><div>${fe(p.gatunek)}</div><div><div class="pm-fish">${p.gatunek} ${p.rekord?'🏆':''}</div><div class="pm-meta">${p.data} · ${p.lowisko}</div></div><div class="pm-waga">${p.waga}kg</div></div>`).join('');
+  document.getElementById('profilModal').classList.add('open');
+}
+function closeProfilModal(){document.getElementById('profilModal').classList.remove('open');}
+
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('profilModal').addEventListener('click',function(e){if(e.target===this)closeProfilModal();});
+document.getElementById('fishModal').addEventListener('click',function(e){if(e.target===this)closeFishModal();});
+
+// ===== SEZONY I OKRESY OCHRONNE =====
+// Źródło: Rozporządzenie MRiRW z 2023 r. + dane PZW 2026
+const SEZONY = [
+  {gatunek:'Szczupak',      emoji:'🐟', ochrona:{od:'01-01',do:'30-04'}, wymiar:45, limit:'2 szt./dobę',
+   opis:'Rzeki i zbiorniki: 1 stycznia – 30 kwietnia. Pozostałe wody: 1 marca – 30 kwietnia. Wymiar 45 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Sandacz',       emoji:'🐡', ochrona:{od:'01-03',do:'31-05'}, wymiar:45, limit:'2 szt./dobę',
+   opis:'Okres ochronny: 1 marca – 31 maja. Wymiar ochronny 45 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Sum',           emoji:'🦈', ochrona:{od:'01-11',do:'30-06'}, wymiar:70, limit:'1 szt./dobę',
+   opis:'Okres ochronny: 1 listopada – 30 czerwca (Odra poniżej Warty do 31 maja). Wymiar 70 cm.'},
+  {gatunek:'Pstrąg potokowy',emoji:'🐟', ochrona:{od:'01-09',do:'31-01'}, wymiar:30, limit:'5 szt./dobę',
+   opis:'Wisła poniżej Sanu i Odra: 1 września – 31 stycznia (wymiar 25 cm). Pozostałe wody: 1 września – 31 grudnia (wymiar 30 cm).'},
+  {gatunek:'Pstrąg tęczowy',emoji:'🐟', ochrona:null, wymiar:30, limit:'5 szt./dobę',
+   opis:'Brak ogólnopolskiego okresu ochronnego. Wymiar 30 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Lipień',        emoji:'🐟', ochrona:{od:'01-03',do:'31-05'}, wymiar:30, limit:'3 szt./dobę',
+   opis:'Okres ochronny: 1 marca – 31 maja. Wymiar ochronny 30 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Troć wędrowna', emoji:'🐟', ochrona:{od:'01-10',do:'31-12'}, wymiar:35, limit:'2 szt./dobę',
+   opis:'Większość rzek: 1 października – 31 grudnia. Wisła poniżej Włocławka: 1 grudnia – koniec lutego. Wymiar 35 cm.'},
+  {gatunek:'Troć jeziorowa',emoji:'🐟', ochrona:{od:'01-09',do:'31-01'}, wymiar:50, limit:'2 szt./dobę',
+   opis:'Okres ochronny: 1 września – 31 stycznia. Wymiar ochronny 50 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Łosoś',         emoji:'🐟', ochrona:{od:'01-10',do:'31-12'}, wymiar:35, limit:'1 szt./dobę',
+   opis:'Rzeki do Bałtyku — ochrona październik–grudzień. Wymiar 35 cm. Gatunek zagrożony — wypuść po złowieniu.'},
+  {gatunek:'Brzana',        emoji:'🐟', ochrona:{od:'01-01',do:'30-06'}, wymiar:40, limit:'3 szt./dobę',
+   opis:'Okres ochronny: 1 stycznia – 30 czerwca. Wymiar ochronny 40 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Certa',         emoji:'🐟', ochrona:{od:'01-01',do:'30-06'}, wymiar:30, limit:'5 szt./dobę',
+   opis:'Wisła powyżej Włocławka i inne rzeki: 1 stycznia – 30 czerwca. Wisła poniżej Włocławka: 1 września – 30 listopada. Wymiar 30 cm.'},
+  {gatunek:'Głowacica',     emoji:'🐟', ochrona:{od:'01-03',do:'31-05'}, wymiar:70, limit:'1 szt./dobę',
+   opis:'Okres ochronny: 1 marca – 31 maja. Wymiar ochronny 70 cm. Zawsze wypuść po złowieniu!'},
+  {gatunek:'Węgorz',        emoji:'🐍', ochrona:null, wymiar:40, limit:'2 szt./dobę',
+   opis:'Brak ogólnopolskiego okresu ochronnego wg rozporządzenia. Wymiar 40 cm. Gatunek zagrożony — rozważ wypuszczenie.'},
+  {gatunek:'Sieja',         emoji:'🐟', ochrona:{od:'15-10',do:'31-12'}, wymiar:35, limit:'5 szt./dobę',
+   opis:'Okres ochronny: 15 października – 31 grudnia. Wymiar ochronny 35 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Sielawa',       emoji:'🐟', ochrona:{od:'15-10',do:'31-12'}, wymiar:18, limit:'bez limitu',
+   opis:'Okres ochronny: 15 października – 31 grudnia. Wymiar ochronny 18 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Świnka',        emoji:'🐟', ochrona:{od:'01-01',do:'15-05'}, wymiar:25, limit:'5 szt./dobę',
+   opis:'Okres ochronny: 1 stycznia – 15 maja. Wymiar ochronny 25 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Karp',          emoji:'🐠', ochrona:null, wymiar:null, limit:'5 szt./dobę',
+   opis:'Brak ogólnopolskiego okresu i wymiaru ochronnego wg rozporządzenia. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Lin',           emoji:'🐟', ochrona:null, wymiar:25, limit:'5 szt./dobę',
+   opis:'Brak okresu ochronnego. Wymiar 25 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Karaś',         emoji:'🐟', ochrona:null, wymiar:null, limit:'bez limitu',
+   opis:'Brak ogólnopolskiego okresu i wymiaru ochronnego. Łowić można cały rok.'},
+  {gatunek:'Leszcz',        emoji:'🐟', ochrona:null, wymiar:null, limit:'5 szt./dobę',
+   opis:'Brak ogólnopolskiego okresu i wymiaru ochronnego. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Płoć',          emoji:'🐟', ochrona:null, wymiar:null, limit:'bez limitu',
+   opis:'Brak ogólnopolskiego okresu i wymiaru ochronnego. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Okoń',          emoji:'🐟', ochrona:null, wymiar:null, limit:'bez limitu',
+   opis:'Brak ogólnopolskiego okresu i wymiaru ochronnego. Można łowić cały rok.'},
+  {gatunek:'Boleń',         emoji:'🐟', ochrona:{od:'01-01',do:'30-04'}, wymiar:40, limit:'3 szt./dobę',
+   opis:'Okres ochronny: 1 stycznia – 30 kwietnia. Wymiar ochronny 40 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Kleń',          emoji:'🐟', ochrona:null, wymiar:25, limit:'5 szt./dobę',
+   opis:'Brak okresu ochronnego. Wymiar 25 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Jaź',           emoji:'🐟', ochrona:null, wymiar:25, limit:'5 szt./dobę',
+   opis:'Brak ogólnopolskiego okresu ochronnego. Wymiar 25 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Tołpyga',       emoji:'🐠', ochrona:null, wymiar:null, limit:'2 szt./dobę',
+   opis:'Brak ogólnopolskiego okresu i wymiaru ochronnego. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Wzdręga',       emoji:'🐟', ochrona:null, wymiar:15, limit:'bez limitu',
+   opis:'Brak okresu ochronnego. Wymiar ochronny 15 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Krąp',          emoji:'🐟', ochrona:null, wymiar:null, limit:'bez limitu',
+   opis:'Brak ogólnopolskiego wymiaru i okresu ochronnego. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Jelec',         emoji:'🐟', ochrona:null, wymiar:15, limit:'bez limitu',
+   opis:'Brak okresu ochronnego. Wymiar ochronny 15 cm. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Amur',          emoji:'🐠', ochrona:null, wymiar:null, limit:'2 szt./dobę',
+   opis:'Brak ogólnopolskiego wymiaru i okresu ochronnego. Sprawdź regulamin lokalnego okręgu PZW.'},
+  {gatunek:'Miętus',        emoji:'🐟', ochrona:{od:'01-01',do:'28-02'}, wymiar:25, limit:'5 szt./dobę',
+   opis:'Okres ochronny: styczeń – luty. Wymiar 25 cm (w Odrze 30 cm). Sprawdź regulamin lokalnego okręgu PZW.'},
+]
+
+function parseDMY(str){
+  const [d,m]=str.split('-').map(Number);
+  return{d,m};
+}
+
+function czyWOchronie(ochrona){
+  if(!ochrona) return false;
+  const now=new Date();
+  const md=now.getMonth()+1;
+  const dd=now.getDate();
+  const [odD,odM]=ochrona.od.split('-').map(Number);
+  const [doD,doM]=ochrona.do.split('-').map(Number);
+  const teraz=md*100+dd;
+  const start=odM*100+odD;
+  const koniec=doM*100+doD;
+  if(start<=koniec){
+    // Normalny zakres np. styczeń-kwiecień
+    return teraz>=start&&teraz<=koniec;
+  } else {
+    // Przekracza rok np. wrzesień-luty
+    return teraz>=start||teraz<=koniec;
+  }
+}
+
+function formatDMY(str){
+  const [d,m]=str.split('-');
+  const msc=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  return `${parseInt(d)} ${msc[parseInt(m)-1]}`;
+}
+
+function sprawdzSezon(){
+  const g=document.getElementById('s-gatunek').value;
+  const res=document.getElementById('sezon-result');
+  if(!g){res.style.display='none';return;}
+  const s=SEZONY.find(x=>x.gatunek===g);
+  if(!s){res.style.display='none';return;}
+  const wOchronie=czyWOchronie(s.ochrona);
+  res.style.display='block';
+  if(!s.ochrona){
+    res.style.background='rgba(58,125,44,0.15)';
+    res.style.borderColor='rgba(58,125,44,0.4)';
+    res.innerHTML=`
+      <div style="font-size:22px;margin-bottom:6px">✅ Można łowić!</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:4px">${s.emoji} ${s.gatunek}</div>
+      <div style="font-size:12px;color:var(--text-dim)">Brak ogólnopolskiego okresu ochronnego.<br>
+      📏 Min. wymiar: <strong style="color:var(--accent)">${s.wymiar?s.wymiar+' cm':'brak'}</strong> &nbsp;·&nbsp; 🎣 Limit: <strong style="color:var(--accent)">${s.limit}</strong></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-dim);background:rgba(0,0,0,0.2);padding:7px 10px;border-radius:7px">⚠️ ${s.opis}</div>`;
+  } else if(wOchronie){
+    res.style.background='rgba(224,85,85,0.12)';
+    res.style.borderColor='rgba(224,85,85,0.4)';
+    res.innerHTML=`
+      <div style="font-size:22px;margin-bottom:6px">🚫 Okres ochronny!</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:4px">${s.emoji} ${s.gatunek}</div>
+      <div style="font-size:12px;color:var(--text-dim)">Aktualnie obowiązuje zakaz połowu.<br>
+      📅 Ochrona: <strong style="color:#e05555">${formatDMY(s.ochrona.od)} — ${formatDMY(s.ochrona.do)}</strong></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-dim);background:rgba(0,0,0,0.2);padding:7px 10px;border-radius:7px">ℹ️ ${s.opis}</div>`;
+  } else {
+    res.style.background='rgba(58,125,44,0.15)';
+    res.style.borderColor='rgba(58,125,44,0.4)';
+    res.innerHTML=`
+      <div style="font-size:22px;margin-bottom:6px">✅ Można łowić!</div>
+      <div style="font-weight:800;font-size:16px;margin-bottom:4px">${s.emoji} ${s.gatunek}</div>
+      <div style="font-size:12px;color:var(--text-dim)">
+      📅 Okres ochronny: <strong style="color:var(--gold)">${formatDMY(s.ochrona.od)} — ${formatDMY(s.ochrona.do)}</strong> (teraz nie obowiązuje)<br>
+      📏 Min. wymiar: <strong style="color:var(--accent)">${s.wymiar?s.wymiar+' cm':'brak'}</strong> &nbsp;·&nbsp; 🎣 Limit: <strong style="color:var(--accent)">${s.limit}</strong></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-dim);background:rgba(0,0,0,0.2);padding:7px 10px;border-radius:7px">ℹ️ ${s.opis}</div>`;
+  }
+}
+
+function renderSezony(){
+  // Tabela sezonów
+  const tab=document.getElementById('sezony-tabela');
+  const now=new Date();
+  tab.innerHTML=`<table class="rekords-table" style="margin-top:0">
+    <thead><tr><th>Gatunek</th><th>Okres ochronny</th><th>Status dziś</th></tr></thead>
+    <tbody>
+    ${SEZONY.map(s=>{
+      const wo=czyWOchronie(s.ochrona);
+      const statusTxt=!s.ochrona?'✅ Cały rok':wo?'🚫 ZAKAZ':'✅ Można';
+      const statusColor=!s.ochrona?'var(--green-light)':wo?'#e05555':'var(--green-light)';
+      const status=!s.ochrona?`<span style="color:var(--green-light);font-weight:800">✅ Cały rok</span>`:wo?`<span style="color:#e05555;font-weight:800">🚫 Zakaz</span>`:`<span style="color:var(--green-light);font-weight:800">✅ Można</span>`;
+      const okres=s.ochrona?`${formatDMY(s.ochrona.od)} – ${formatDMY(s.ochrona.do)}`:`<span style="color:var(--text-dim)">brak</span>`;
+      return`<tr><td>${s.emoji} ${s.gatunek}</td><td style="font-size:11px">${okres}</td><td>${status}</td></tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+
+  // Tabela wymiarów
+  document.getElementById('wymiary-tbody').innerHTML=SEZONY.map(s=>`
+    <tr>
+      <td>${s.emoji} ${s.gatunek}</td>
+      <td style="color:var(--accent);font-weight:800">${s.wymiar?s.wymiar+' cm':'brak'}</td>
+      <td style="font-size:10px;color:var(--text-dim)">${s.limit}</td>
+    </tr>`).join('');
+}
+
+// ===== FISHDEX =====
+const FISHDEX = [
+  // DRAPIEŻNIKI
+  {id:'sum',      emoji:'🦈', name:'Sum',           latin:'Silurus glanis',    kategoria:'drapieznik',
+   rzadkosc:10, trudnosc:5, rekordPL:'105.5kg / 292cm',
+   siedlisko:'Rzeki i duże jeziora', aktywnosc:'Nocna',
+   opis:'Największa ryba słodkowodna w Polsce i Europie. Może dożyć 80 lat i osiągnąć ponad 3 metry. Nocny łowca polujący na ryby, żaby, a nawet ptaki. Złowienie dużego suma to marzenie każdego wędkarza.',
+   wskazowki:['🌙 Najlepsze połowy nocą na żywca lub martwą rybę','📍 Szukaj przy filarach mostów i głębszych dołkach','🎣 Metoda sumowa z użyciem dużych haków nr 1-6/0','🌡️ Najaktywniejszy przy temp. wody powyżej 18°C']},
+
+  {id:'szczupak', emoji:'🐟', name:'Szczupak',      latin:'Esox lucius',       kategoria:'drapieznik',
+   rzadkosc:8, trudnosc:3, rekordPL:'20.8kg / 130cm',
+   siedlisko:'Jeziora, rzeki, stawy', aktywnosc:'Świt i zmierzch',
+   opis:'Król polskich wód — najczęściej łowiony drapieżnik. Zasadzkowy myśliwy czający się wśród roślinności. Znany z agresywnych ataków i efektownych skoków po holu.',
+   wskazowki:['🎯 Najlepiej na gumowe przynęty i wobblery','🌅 Aktywny o świcie i przy zachodzie słońca','🌿 Szukaj przy trzcinach i podwodnych roślinach','❄️ Łowiony też spod lodu']},
+
+  {id:'sandacz',  emoji:'🐡', name:'Sandacz',       latin:'Sander lucioperca', kategoria:'drapieznik',
+   rzadkosc:8, trudnosc:4, rekordPL:'14.2kg / 108cm',
+   siedlisko:'Duże jeziora i rzeki', aktywnosc:'Nocna i o zmierzchu',
+   opis:'Najsmaczniejsza ryba słodkowodna. Unika silnego światła — aktywny głównie w nocy i przy mętnej wodzie. Bardzo ceniony przez wędkarzy za waleczność i smak mięsa.',
+   wskazowki:['⬇️ Łów przy dnie — twister lub guma na jiggu','💨 Lepsze wyniki przy wietrznej i mętnej wodzie','🌙 Nocne połowy dają największe okazy','🚤 Trolling bardzo skuteczny na dużych zbiornikach']},
+
+  {id:'bolen',    emoji:'🐟', name:'Boleń',         latin:'Leuciscus aspius',  kategoria:'drapieznik',
+   rzadkosc:7, trudnosc:4, rekordPL:'8.49kg / 90cm',
+   siedlisko:'Rzeki o wartkim nurcie', aktywnosc:'Dzienna',
+   opis:'Jedyny drapieżny karp w Polsce. Poluje na powierzchni wody uderzając ogonem w ławice małych ryb. Charakterystyczne pluskanie zdradzające jego obecność. Piękna ryba do połowów spinningowych.',
+   wskazowki:['🎯 Spinning na małe błystki i wooblery przy powierzchni','👁️ Szukaj pluskania na powierzchni wody','🌊 Najlepsza w szybko płynących rzekach','☀️ Aktywny w ciepłe słoneczne dni']},
+
+  {id:'okon',     emoji:'🐟', name:'Okoń',          latin:'Perca fluviatilis',  kategoria:'drapieznik',
+   rzadkosc:5, trudnosc:1, rekordPL:'2.76kg / 52cm',
+   siedlisko:'Wszędzie', aktywnosc:'Dzienna',
+   opis:'Najpopularniejsza ryba w Polsce. Nie ma okresu ochronnego ani wymiaru ochronnego. Łatwy do złowienia, waleczny na wędce. Idealny dla początkujących wędkarzy.',
+   wskazowki:['🎯 Małe gumki i błystki', '🎣 Łowi się prawie wszędzie i o każdej porze','👶 Idealna ryba dla początkujących','❄️ Chętnie bierze spod lodu']},
+
+  // KARPIOWATE
+  {id:'karp',     emoji:'🐠', name:'Karp',          latin:'Cyprinus carpio',   kategoria:'karp',
+   rzadkosc:8, trudnosc:4, rekordPL:'39.6kg / 110cm',
+   siedlisko:'Stawy, jeziora, wolne rzeki', aktywnosc:'Świt i zmierzch',
+   opis:'Najcenniejszy cel karpiarzów na całym świecie. Bardzo ostrożna i inteligentna ryba. Duże okazy to prawdziwe trofea wymagające specjalistycznego sprzętu i wiedzy. Może żyć ponad 50 lat.',
+   wskazowki:['🐠 Karpiarstwo — kulki proteinowe i zestawy karpiowe','🌅 Branie najczęściej o świcie i zmierzchu','📍 Szukaj na podwodnych wzniesieniach i przy roślinności','⏰ Wymaga cierpliwości — czasem czeka się całą noc']},
+
+  {id:'lin',      emoji:'🐟', name:'Lin',           latin:'Tinca tinca',       kategoria:'karp',
+   rzadkosc:6, trudnosc:2, rekordPL:'4.96kg / 62cm',
+   siedlisko:'Stawy i spokojne jeziora', aktywnosc:'Świt',
+   opis:'Łatwo rozpoznawalny po złotawym zabarwieniu i małych łuskach pokrytych śluzem. Preferuje wody zarośnięte roślinnością. Aktywny głównie latem o świcie.',
+   wskazowki:['🪱 Spławikowe na robaka lub kukurydzę','🌅 Najlepsze połowy wczesnym rankiem','🌿 Szukaj przy roślinności wodnej','☀️ Aktywny przy ciepłej wodzie latem']},
+
+  {id:'leszcz',   emoji:'🐟', name:'Leszcz',        latin:'Abramis brama',     kategoria:'karp',
+   rzadkosc:4, trudnosc:2, rekordPL:'7.52kg / 76.5cm',
+   siedlisko:'Jeziora i wolne rzeki', aktywnosc:'Nocna',
+   opis:'Masowo występująca ryba ławicowa. Żeruje przy dnie szukając bezkręgowców. Duże okazy mogą ważyć ponad 5kg. Popularna ryba na zawodach spławikowych.',
+   wskazowki:['🪱 Grunt lub spławik na robaka i ochotki','🌙 Nocne połowy przynoszą największe okazy','⬇️ Żeruje wyłącznie przy dnie','📍 Szukaj głębszych miejsc w jeziorach']},
+
+  {id:'karas',    emoji:'🐟', name:'Karaś',         latin:'Carassius carassius',kategoria:'karp',
+   rzadkosc:3, trudnosc:1, rekordPL:'4.76kg / 61cm',
+   siedlisko:'Stawy i muliste jeziora', aktywnosc:'Dzienna',
+   opis:'Bardzo wytrzymała ryba przeżywająca nawet w mocno zanieczyszczonej wodzie. Może przeżyć zimę zamarznięta w lodzie. Brak okresu ochronnego i wymiaru. Dobra ryba dla dzieci.',
+   wskazowki:['🪱 Spławikowe na robaka lub chleb','🌿 Szukaj przy roślinności i mułu','👶 Idealna ryba dla dzieci i początkujących','☀️ Najaktywniejszy w ciepłe dni']},
+
+  {id:'plock',    emoji:'🐟', name:'Płoć',          latin:'Rutilus rutilus',    kategoria:'karp',
+   rzadkosc:3, trudnosc:1, rekordPL:'1.57kg / 47cm',
+   siedlisko:'Wszędzie', aktywnosc:'Dzienna',
+   opis:'Jedna z najpospolitszych ryb w Polsce. Żyje w ławicach. Brak wymiaru ochronnego (15cm). Dobra przynęta na drapieżniki po złowieniu.',
+   wskazowki:['🪱 Spławikowe na małe robaki i ochotki','🎣 Prawie wszędzie i cały rok','📏 Minimalna długość tylko 15cm','🐟 Dobra przynęta żywa na szczupaka']},
+
+  {id:'klen',     emoji:'🐟', name:'Kleń',          latin:'Squalius cephalus',  kategoria:'karp',
+   rzadkosc:5, trudnosc:3, rekordPL:'4.0kg / 67cm',
+   siedlisko:'Rzeki o czystej wodzie', aktywnosc:'Dzienna',
+   opis:'Oportunistyczny drapieżnik jedzący prawie wszystko. Rzadko łowiony bo jest bardzo ostrożny. Piękna ryba do połowów spinningowych na małe przynęty.',
+   wskazowki:['🎯 Spinning na małe błystki i muszki','🌊 Preferuje czyste szybkie rzeki','👁️ Bardzo płochliwy — ostrożne podejście','🍓 Bierze też na owoce i owady']},
+
+  {id:'jaz',      emoji:'🐟', name:'Jaź',           latin:'Leuciscus idus',     kategoria:'karp',
+   rzadkosc:5, trudnosc:3, rekordPL:'4.15kg / 66cm',
+   siedlisko:'Rzeki i jeziora', aktywnosc:'Świt i zmierzch',
+   opis:'Piękna ryba o złotawym połysku. Podobny do klenia ale rzadszy. Aktywny szczególnie wiosną podczas tarła. Dobry do połowów spinningowych.',
+   wskazowki:['🎯 Spinning i spławikowe','🌅 Najaktywniejszy wiosną i wczesnym latem','🌊 Rzeki o umiarkowanym nurcie','🪱 Bierze na robaka i małe przynęty']},
+
+  // ŁOSOSIOWATE
+  {id:'pstrag',   emoji:'🐟', name:'Pstrąg potokowy',latin:'Salmo trutta fario', kategoria:'losos',
+   rzadkosc:9, trudnosc:5, rekordPL:'6.0kg / 81cm',
+   siedlisko:'Czyste górskie rzeki', aktywnosc:'Świt i zmierzch',
+   opis:'Królowa górskich rzek. Wymaga krystalicznie czystej i dobrze natlenionej wody. Wyjątkowo trudna do złowienia — bardzo ostrożna i inteligentna. Wędkowanie muchowe to osobna sztuka.',
+   wskazowki:['🪰 Wędkowanie muchowe — sucha i mokra mucha','🎯 Mały spinner przy brzegu w cieniu','🌅 Najlepsze połowy o świcie i zmierzchu','🥾 Brodzenie — najlepszy dostęp do ryb']},
+
+  {id:'lipien',   emoji:'🐟', name:'Lipień',        latin:'Thymallus thymallus',kategoria:'losos',
+   rzadkosc:8, trudnosc:5, rekordPL:'1.35kg / 54cm',
+   siedlisko:'Górskie i podgórskie rzeki', aktywnosc:'Dzienna',
+   opis:'Jedna z najpiękniejszych ryb słodkowodnych. Charakterystyczna duża płetwa grzbietowa z fioletowymi plamkami. Wskaźnik czystości wody. Rybka muchowa nr 1 w Polsce.',
+   wskazowki:['🪰 Wyłącznie wędkowanie muchowe','☀️ Aktywny w ciągu dnia przy ciepłej pogodzie','🌊 Czyste zimne rzeki podgórskie','📏 Wymiar 30cm — ostrożnie z małymi okazami']},
+
+  {id:'wegorz',   emoji:'🐍', name:'Węgorz',        latin:'Anguilla anguilla',  kategoria:'inne',
+   rzadkosc:9, trudnosc:4, rekordPL:'6.43kg / 149cm',
+   siedlisko:'Jeziora i rzeki', aktywnosc:'Nocna',
+   opis:'Tajemnicza ryba odbywająca tysiąckilometrowe wędrówki na Morze Sargassowe. Gatunek zagrożony wyginięciem — po złowieniu najlepiej wypuścić. Nocny łowca polujący na dno.',
+   wskazowki:['🌙 Wyłącznie nocne połowy','🪱 Gruby robak lub dżdżownica przy dnie','📍 Muliste dno przy roślinności','⚠️ Gatunek zagrożony — rozważ wypuszczenie']},
+
+  // INNE
+  {id:'brzana',   emoji:'🐟', name:'Brzana',        latin:'Barbus barbus',      kategoria:'karp',
+   rzadkosc:7, trudnosc:3, rekordPL:'8.6kg / 93cm',
+   siedlisko:'Rzeki o silnym nurcie', aktywnosc:'Dzienna',
+   opis:'Silna ryba żyjąca w wartkich rzekach. Znana z mocnych holowań i waleczności. Preferuje kamieniste dno z silnym nurtem.',
+   wskazowki:['🪱 Grunt na robaka lub kukurydzę w nurcie','🌊 Szukaj przy bystrych fragmentach rzeki','⚓ Ciężkie obciążenie żeby przynęta leżała na dnie','📏 Wymiar 40cm']},
+
+  {id:'mietus',   emoji:'🐟', name:'Miętus',        latin:'Lota lota',          kategoria:'inne',
+   rzadkosc:6, trudnosc:3, rekordPL:'4.06kg / 75cm',
+   siedlisko:'Zimne głębokie jeziora i rzeki', aktywnosc:'Nocna zimowa',
+   opis:'Jedyna ryba dorszowata żyjąca w słodkich wodach. Aktywna zimą — tarło odbywa pod lodem. Ceniona za smak mięsa podobny do dorsza. Rzadko spotykana przez wędkarzy.',
+   wskazowki:['❄️ Najlepsze połowy zimą i spod lodu','🌙 Aktywna nocą przy zimnej wodzie','🪱 Robak lub kawałki ryby przy dnie','📍 Szukaj głębszych zimnych miejsc']},
+
+  {id:'glowacica',emoji:'🐟', name:'Głowacica',     latin:'Hucho hucho',        kategoria:'drapieznik',
+   rzadkosc:10, trudnosc:5, rekordPL:'20.3kg / 129cm',
+   siedlisko:'Górskie rzeki (San, Dunajec)', aktywnosc:'Świt i zmierzch',
+   opis:'Największy łosoś Europy. Krytycznie zagrożony wyginięciem w Polsce. Objęta ścisłą ochroną w wielu rzekach. Złowienie głowacicy to wielkie wydarzenie — zawsze wypuścić!',
+   wskazowki:['⚠️ Sprawdź lokalne przepisy — często zakaz zabierania','🎣 Duże przynęty spinningowe i muchowe','🌊 Tylko czyste górskie rzeki — San, Dunajec','🏆 Trofeum życia każdego wędkarza']},
+
+  {id:'troć',     emoji:'🐟', name:'Troć wędrowna', latin:'Salmo trutta trutta', kategoria:'losos',
+   rzadkosc:9, trudnosc:5, rekordPL:'14.6kg / 105cm',
+   siedlisko:'Rzeki do Bałtyku', aktywnosc:'Świt i zmierzch',
+   opis:'Wędrowna forma pstrąga wypływająca do Bałtyku. Wraca do rzek na tarło. Jedna z najbardziej walecznych ryb w Polsce — skacze i nurkuje podczas holu.',
+   wskazowki:['🎯 Spinner i wobler w nurcie rzeki','🌅 Najaktywniejsza o świcie i zmierzchu','🍂 Najlepszy sezon jesienią podczas wstępowania','📅 Ochrona 1 październik — 14 stycznia']},
+
+  {id:'losos',    emoji:'🐟', name:'Łosoś atlantycki',latin:'Salmo salar',      kategoria:'losos',
+   rzadkosc:10, trudnosc:5, rekordPL:'30.4kg / 130cm',
+   siedlisko:'Rzeki do Bałtyku', aktywnosc:'Świt',
+   opis:'Legendarny król rzek. Prawie wyginął w Polsce w XX wieku — trwa program restytucji. Złowienie łososia w Polsce to wydarzenie na skalę krajową. Zawsze wypuścić po złowieniu!',
+   wskazowki:['⚠️ Po złowieniu ZAWSZE wypuść — gatunek chroniony','🎣 Mucha lub duży spinner','🌊 Rzeki Przymorza i dolna Wisła','🏆 Ryba życia — spełnienie marzeń każdego wędkarza']},
+
+  {id:'sieja',    emoji:'🐟', name:'Sieja',          latin:'Coregonus lavaretus',kategoria:'losos',
+   rzadkosc:7, trudnosc:4, rekordPL:'5.2kg / 78cm',
+   siedlisko:'Głębokie czyste jeziora mazurskie', aktywnosc:'Nocna',
+   opis:'Ryba głębinowa żyjąca w chłodnych warstwach wody. Wskaźnik czystości jeziora. Połów wymaga specjalistycznego sprzętu. Smaczna i rzadka.',
+   wskazowki:['🌙 Połów nocą na duże głębokości','🎣 Specjalne zestawy do połowów głębinowych','❄️ Aktywna zimą — spod lodu','📍 Tylko czyste głębokie jeziora mazurskie']},
+
+  {id:'sielawa',  emoji:'🐟', name:'Sielawa',        latin:'Coregonus albula',   kategoria:'losos',
+   rzadkosc:5, trudnosc:3, rekordPL:'0.55kg / 30cm',
+   siedlisko:'Głębokie jeziora mazurskie', aktywnosc:'Nocna',
+   opis:'Mała ryba głębinowa tworząca ogromne ławice. Smaczna wędzona. Rzadko łowiona wędką — wymaga delikatnego sprzętu i specjalnych technik.',
+   wskazowki:['🌙 Połów nocny na małe muszki','🎣 Bardzo delikatny sprzęt i cienka żyłka','❄️ Spod lodu zimą','📍 Jezioro Wigry, Śniardwy, Mamry']},
+
+  {id:'pstrag_tecz',emoji:'🐟',name:'Pstrąg tęczowy',latin:'Oncorhynchus mykiss',kategoria:'losos',
+   rzadkosc:7, trudnosc:3, rekordPL:'7.3kg / 75.3cm',
+   siedlisko:'Rzeki i stawy pstrągowe', aktywnosc:'Dzienna',
+   opis:'Introdukowany z Ameryki Północnej. Bardzo popularny w hodowlach i stawach pstrągowych. Waleczny i chętnie biorący na różne przynęty. Brak ogólnopolskiego okresu ochronnego.',
+   wskazowki:['🎯 Spinner, mucha, gumka','☀️ Aktywny w ciągu dnia','🌊 Stawy pstrągowe i czyste rzeki','🪱 Bierze też na robaka i kukurydzę']},
+
+  {id:'pstrag_zrod',emoji:'🐟',name:'Pstrąg źródlany',latin:'Salvelinus fontinalis',kategoria:'losos',
+   rzadkosc:8, trudnosc:5, rekordPL:'2.52kg / 58cm',
+   siedlisko:'Zimne źródliskowe potoki', aktywnosc:'Świt i zmierzch',
+   opis:'Najpiękniej ubarwiona ryba w Polsce — czerwone plamki na bokach. Pochodzi z Ameryki Północnej. Wymaga wyjątkowo czystej zimnej wody. Prawdziwy skarb górskich potoków.',
+   wskazowki:['🪰 Wędkowanie muchowe — sucha mucha','🏔️ Tylko górskie czyste potoki','🌅 Aktywny o świcie','📏 Wymiar ochronny 30cm']},
+
+  {id:'certa',    emoji:'🐟', name:'Certa',         latin:'Vimba vimba',        kategoria:'karp',
+   rzadkosc:6, trudnosc:4, rekordPL:'1.74kg / 51cm',
+   siedlisko:'Rzeki — Wisła i dopływy', aktywnosc:'Dzienna',
+   opis:'Rzadka wędrowna ryba karpiowata. Odbywa wędrówki tarłowe jak łosoś. Coraz rzadsza przez regulację rzek. Połów to prawdziwa rzadkość i powód do dumy.',
+   wskazowki:['🪱 Grunt na robaka przy dnie','🌊 Wisła i duże rzeki nizinne','🍂 Najlepsza wiosną i latem','📅 Długi okres ochronny — sprawdź przepisy']},
+
+  {id:'rozpior',  emoji:'🐟', name:'Rozpiór',       latin:'Ballerus sapa',      kategoria:'karp',
+   rzadkosc:4, trudnosc:3, rekordPL:'1.53kg / 53cm',
+   siedlisko:'Duże rzeki nizinne', aktywnosc:'Dzienna',
+   opis:'Mało znana ryba spokrewniona z krąpiem. Żyje w głębszych partiach dużych rzek. Rzadko łowiona przez wędkarzy. Egzotyczna i rzadka zdobycz w FishDexie.',
+   wskazowki:['🪱 Spławik lub grunt przy dnie','🌊 Dolna Wisła i Odra','📍 Głębsze miejsca przy nurcie','🏆 Rzadka zdobycz — prawdziwy kolekcjoner']},
+
+  {id:'amur',     emoji:'🐠', name:'Amur',          latin:'Ctenopharyngodon idella',kategoria:'karp',
+   rzadkosc:8, trudnosc:4, rekordPL:'39.2kg / 132cm',
+   siedlisko:'Stawy i wolne rzeki', aktywnosc:'Dzienna',
+   opis:'Azjatycka ryba roślinożerna. Może osiągnąć ponad 40kg! Żywi się roślinami wodnymi. Niesamowicie silna podczas holu.',
+   wskazowki:['🌿 Przynęty roślinne — kukurydza, trawa, pellet','🐠 Metody karpiowe','☀️ Aktywny przy ciepłej wodzie','💪 Bardzo silna ryba — potrzebny mocny sprzęt']},
+
+  {id:'wzdrega',  emoji:'🐟', name:'Wzdręga',       latin:'Scardinius erythrophthalmus',kategoria:'karp',
+   rzadkosc:3, trudnosc:1, rekordPL:'1.69kg / 46cm',
+   siedlisko:'Jeziora i stawy', aktywnosc:'Dzienna',
+   opis:'Podobna do płoci ale z czerwonymi płetwami. Żyje przy powierzchni wody. Łatwa do złowienia. Dobra przynęta na szczupaka.',
+   wskazowki:['🪱 Spławikowe przy powierzchni','🌿 Przy roślinności wodnej','☀️ Aktywna w ciepłe dni','🎣 Cienka żyłka i małe haki']},
+
+  {id:'tolpyga',  emoji:'🐠', name:'Tołpyga',       latin:'Hypophthalmichthys molitrix',kategoria:'karp',
+   rzadkosc:8, trudnosc:3, rekordPL:'64.7kg / 147cm',
+   siedlisko:'Duże zbiorniki i stawy', aktywnosc:'Dzienna',
+   opis:'Rekord Polski to 64.7kg! Azjatycka ryba żywiąca się glonami. Bardzo rzadko łowiona na wędkę. Ogromna siła podczas holu — jeden z najtrudniejszych celów.',
+   wskazowki:['🌊 Metoda powierzchniowa z kulką chleba','🎣 Bardzo trudna do złowienia na wędkę','💪 Ogromna siła podczas holu','🏆 Jeden z najtrudniejszych celów wędkarskich']},
+
+  {id:'krap',     emoji:'🐟', name:'Krąp',          latin:'Blicca bjoerkna',    kategoria:'karp',
+   rzadkosc:3, trudnosc:1, rekordPL:'1.2kg / 35cm',
+   siedlisko:'Jeziora i wolne rzeki', aktywnosc:'Dzienna',
+   opis:'Mała ryba ławicowa spokrewniona z leszczem. Bardzo pospolita. Rzadko łowiona celowo — trafia się przy połowie leszcza i płoci.',
+   wskazowki:['🪱 Spławikowe na małe robaki','📍 Przy trzcinach i roślinności','🎣 Trafia się przy połowie leszcza','👶 Częsty połów przy nauce wędkowania']},
+
+  {id:'swinka',   emoji:'🐟', name:'Świnka',        latin:'Chondrostoma nasus',  kategoria:'karp',
+   rzadkosc:5, trudnosc:3, rekordPL:'2.7kg / 58cm',
+   siedlisko:'Rzeki o silnym nurcie', aktywnosc:'Dzienna',
+   opis:'Charakterystyczna ryba z dolnie skierowanym pyskiem przystosowanym do zeskrobywania glonów z kamieni. Żyje w czystych rzekach o silnym nurcie. Rzadko łowiona.',
+   wskazowki:['🌊 Czyste rzeki o silnym nurcie','🪱 Małe przynęty przy dnie','🏔️ Górskie i podgórskie rzeki','📍 Wisła, San, Dunajec']},
+
+  {id:'karas_srebr',emoji:'🐟',name:'Karaś srebrzysty',latin:'Carassius gibelio',kategoria:'karp',
+   rzadkosc:4, trudnosc:1, rekordPL:'3.5kg / 52cm',
+   siedlisko:'Wszędzie', aktywnosc:'Dzienna',
+   opis:'Introdukowany z Azji, wyparł w wielu miejscach rodzimego karasia. Bardzo odporny na złe warunki. Łatwy do złowienia, ale mniej ceniony niż karaś złocisty.',
+   wskazowki:['🪱 Spławikowe na robaka lub chleb','🌿 Przy roślinności i mułu','☀️ Ciepłe letnie dni','🎣 Prawie wszędzie — jeziora, stawy, rzeki']},
+
+  {id:'lin2',     emoji:'🐟', name:'Lin',           latin:'Tinca tinca',        kategoria:'karp',
+   rzadkosc:6, trudnosc:2, rekordPL:'4.96kg / 62cm',
+   siedlisko:'Stawy i spokojne jeziora', aktywnosc:'Świt',
+   opis:'Łatwo rozpoznawalny po złotawym zabarwieniu i małych łuskach pokrytych śluzem. Preferuje wody zarośnięte roślinnością. Aktywny głównie latem o świcie.',
+   wskazowki:['🪱 Spławikowe na robaka lub kukurydzę','🌅 Najlepsze połowy wczesnym rankiem','🌿 Szukaj przy roślinności wodnej','☀️ Aktywny przy ciepłej wodzie latem']},
+];
+
+let fishdexFilter = 'all';
+let unlockedFish = new Set(); // Odblokowane przez połowy użytkownika
+let currentFishId = null;
+
+function getFishScore(score){
+  if(score>=10) return{color:'#ff4444',fires:'🔥🔥🔥🔥🔥'};
+  if(score>=8)  return{color:'#ff8800',fires:'🔥🔥🔥🔥'};
+  if(score>=6)  return{color:'#f0c040',fires:'🔥🔥🔥'};
+  if(score>=4)  return{color:'#a8e063',fires:'🔥🔥'};
+  return        {color:'#7a9a7a',fires:'🔥'};
+}
+
+function getDiffStars(diff){
+  return '⭐'.repeat(diff)+'☆'.repeat(5-diff);
+}
+
+function renderFishDex(){
+  // Sprawdź odblokowane na podstawie połowów użytkownika
+  unlockedFish = new Set(polowy.filter(p=>p.autor===currentUser).map(p=>
+    FISHDEX.find(f=>f.name===p.gatunek)?.id
+  ).filter(Boolean));
+
+  const grid = document.getElementById('fishdex-grid');
+  let filtered = FISHDEX;
+  if(fishdexFilter==='unlocked') filtered=FISHDEX.filter(f=>unlockedFish.has(f.id));
+  else if(fishdexFilter==='locked') filtered=FISHDEX.filter(f=>!unlockedFish.has(f.id));
+  else if(fishdexFilter!=='all') filtered=FISHDEX.filter(f=>f.kategoria===fishdexFilter);
+
+  grid.innerHTML = filtered.map(f=>{
+    const unlocked = unlockedFish.has(f.id);
+    const sc = getFishScore(f.rzadkosc);
+    return `<div class="fish-card ${unlocked?'unlocked':'locked'}" onclick="openFishModal('${f.id}')">
+      <div class="fish-card-img ${unlocked?'ubg':'lbg'}">
+        ${f.emoji}
+        ${unlocked?`<div class="ubadge">✅ Złowiony</div>`:`<div class="lbadge">🔒</div>`}
+      </div>
+      <div class="fish-card-body">
+        <div class="fish-card-name">${f.name}</div>
+        <div class="fish-score-row">
+          <div class="fish-score-num" style="color:${sc.color}">${f.rzadkosc}<small style="font-size:10px">/10</small></div>
+          <div style="font-size:12px">${sc.fires}</div>
+        </div>
+        <div class="fish-card-type">${getDiffStars(f.trudnosc)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Statystyki
+  document.getElementById('fd-odblokowane').textContent = unlockedFish.size;
+  document.getElementById('fd-total').textContent = FISHDEX.length;
+  document.getElementById('fd-procent').textContent = Math.round(unlockedFish.size/FISHDEX.length*100)+'%';
+}
+
+function filterFishDex(btn, val){
+  document.querySelectorAll('#page-fishdex .fchip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  fishdexFilter = val;
+  renderFishDex();
+}
+
+function openFishModal(id){
+  const f = FISHDEX.find(x=>x.id===id);
+  if(!f) return;
+  currentFishId = id;
+  const unlocked = unlockedFish.has(id);
+  const sc = getFishScore(f.rzadkosc);
+  const rek = REKORDY[f.name];
+
+  document.getElementById('fm-emoji').textContent = f.emoji;
+  document.getElementById('fm-name').textContent = f.name.toUpperCase();
+  document.getElementById('fm-latin').textContent = f.latin;
+  document.getElementById('fm-score').textContent = f.rzadkosc+'/10';
+  document.getElementById('fm-score').style.color = sc.color;
+  document.getElementById('fm-fire').textContent = sc.fires;
+  document.getElementById('fm-desc').textContent = f.opis;
+  document.getElementById('fm-stats').innerHTML = `
+    <div class="fms"><div class="fms-val">${getDiffStars(f.trudnosc)}</div><div class="fms-lbl">Trudność</div></div>
+    <div class="fms"><div class="fms-val" style="font-size:13px">${f.siedlisko}</div><div class="fms-lbl">Siedlisko</div></div>
+    <div class="fms"><div class="fms-val" style="font-size:13px">${f.aktywnosc}</div><div class="fms-lbl">Aktywność</div></div>
+    <div class="fms"><div class="fms-val" style="font-size:11px">${rek?rek.waga+'kg':f.rekordPL}</div><div class="fms-lbl">Rekord PL</div></div>`;
+  document.getElementById('fm-tips').innerHTML = `
+    <h4>🎣 Wskazówki</h4>
+    ${f.wskazowki.map(t=>`<div class="fmtip"><span>${t}</span></div>`).join('')}`;
+  const btn = document.getElementById('fm-unlock-btn');
+  if(unlocked){
+    btn.textContent = '✅ Złowiona przez Ciebie!';
+    btn.className = 'unlock-btn done';
+  } else {
+    btn.textContent = '🎣 Oznacz jako złowioną';
+    btn.className = 'unlock-btn';
+  }
+  document.getElementById('fishModal').classList.add('open');
+}
+
+function closeFishModal(){
+  document.getElementById('fishModal').classList.remove('open');
+  currentFishId = null;
+}
+
+function toggleUnlock(){
+  if(!currentFishId) return;
+  if(unlockedFish.has(currentFishId)){
+    unlockedFish.delete(currentFishId);
+  } else {
+    unlockedFish.add(currentFishId);
+  }
+  openFishModal(currentFishId);
+  renderFishDex();
+}
+
+window.addEventListener('load',async function(){
+  initMap();
+  renderFeed();
+  renderRekordyTable();
+  updateStats();
+  // Załaduj dane z Supabase
+  await ladujPolowy();
+  await ladujLowiska();
+  // Rejestracja Service Worker (PWA)
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  }
+});
+</script>
+</body>
+</html>
