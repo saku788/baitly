@@ -1,0 +1,26 @@
+{
+  "name": "Baitly — Fishing App",
+  "short_name": "Baitly",
+  "description": "Polska aplikacja wędkarska — mapa łowisk, połowy, FishDex i rekordy Polski",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1a0f",
+  "theme_color": "#a8e063",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "lifestyle"],
+  "lang": "pl"
+}
